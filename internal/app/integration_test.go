@@ -138,6 +138,25 @@ func TestLoginRejectsBadPassword(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, status)
 }
 
+func TestRegisterDocterWithoutLoginFails(t *testing.T) {
+	reset(t)
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+
+	insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, _ := request(t, http.MethodPost, "/api/v1/doctors", "", validDoctor())
+	require.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestDoctorRegisterByLoggedInPatientFails(t *testing.T) {
+	reset(t)
+	insertUser(t, "patient@hospital.local", "ChangeMe123!", "Hospital Patient", "PATIENT")
+
+	token := login(t, "patient@hospital.local", "ChangeMe123!")
+	insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, _ := request(t, http.MethodPost, "/api/v1/doctors", token, validDoctor())
+	require.Equal(t, http.StatusForbidden, status)
+}
+
 func TestRegisterDoctorForbidsDuplicateLisenceNumber(t *testing.T) {
 	reset(t)
 	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")

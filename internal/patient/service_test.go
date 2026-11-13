@@ -76,6 +76,8 @@ func TestUpdateFailsWhenDateOfBirthIsInTheFuture(t *testing.T) {
 	require.Contains(t, domainErr.Message, "future")
 }
 
+
+
 func sampleRequest() UpdatePatientRequest {
 	return UpdatePatientRequest{
 		FullName:            str("Ada Lovelace"),

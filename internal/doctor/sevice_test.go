@@ -54,6 +54,41 @@ func TestResgisterRejectsExistingLicenseNumber(t *testing.T) {
 
 }
 
+func TestInvalidDoctorRegisterFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 1)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+}
+
+func TestRegisterWithLengthyLicenseNumberAndMissingNameFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "",
+		Address:       "Mysuru",
+		Speciality:    "Dentist",
+		LicenseNumber: "KMCH12345678910ABCDEFGHIJKLMNOPQRSTUVWXYZ1112334455",
+		Department:    "Oral",
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 2)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+
+}
+
 type fakeUserRepo struct {
 	byname map[string]Doctor
 }

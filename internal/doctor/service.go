@@ -2,7 +2,6 @@ package doctor
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -19,6 +18,10 @@ func NewService(repository Repository) *Service {
 }
 
 func (s *Service) Register(ctx context.Context, request RegisterDoctorRequest) (DoctorResponse, error) {
+	if violation := validateCreateRequest(request); len(violation) > 0 {
+		return DoctorResponse{}, domain.ValidationFailed(violation)
+
+	}
 	licenseNumber := strings.ToLower(strings.TrimSpace(request.LicenseNumber))
 	fullName := strings.TrimSpace(request.Name)
 	speciality := strings.TrimSpace(request.Speciality)
@@ -45,9 +48,6 @@ func (s *Service) Register(ctx context.Context, request RegisterDoctorRequest) (
 		UpdatedAt:     upadatedat,
 	})
 
-	if errors.Is(err, ErrDuplicate) {
-		return DoctorResponse{}, domain.Conflict("Email is already registered")
-	}
 	if err != nil {
 		return DoctorResponse{}, err
 	}
@@ -82,8 +82,8 @@ func validateCreateRequest(request RegisterDoctorRequest) []domain.Violation {
 	switch {
 	case strings.TrimSpace(request.Department) == "":
 		violations = append(violations, domain.Violation{Field: "department", Message: "Deparment is required"})
-	case utf8.RuneCountInString(strings.TrimSpace(request.Speciality)) < 2 || utf8.RuneCountInString(strings.TrimSpace(request.Speciality)) > 80:
-		violations = append(violations, domain.Violation{Field: "department", Message: "departmnet  must be between 2 and 80 characters"})
+	case utf8.RuneCountInString(strings.TrimSpace(request.Department)) < 2 || utf8.RuneCountInString(strings.TrimSpace(request.Department)) > 80:
+		violations = append(violations, domain.Violation{Field: "department", Message: "department  must be between 2 and 80 characters"})
 	}
 
 	return violations

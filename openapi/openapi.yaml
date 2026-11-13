@@ -9,7 +9,11 @@ info:
     - POST /api/v1/users — public patient registration
     - POST /api/v1/auth/login — JWT login
     - PUT /api/v1/patients/{id} — secured patient update (ADMIN, DOCTOR)
-    - POST /api/v1/doctor - register doctor
+    The Doctor resource is intentionally left unimplemented.
+
+    Fresh implementation
+    - POST /api/v1/doctors - register doctor
+
   contact:
     name: Hospital Engineering
     email: engineering@hospital.local
@@ -190,7 +194,7 @@ components:
           maxLength: 80
         address:
           type: string
-          minLength:               
+          minLength:
           maxLength: 80
         licenseNumber:
           type: string
@@ -203,7 +207,7 @@ components:
     DoctorResponse:
       type: object
       properties:
-        id: 
+        id:
           type: string
         name:
           type: string
@@ -346,11 +350,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
-  /api/v1/doctor:
+  /api/v1/doctors:
     post:
       tags: [Doctors]
       summary: Register a new Doctor
-      description: Public endpoint that creates a doctor. Licensenumber must be unique
+      description: Endpoint that creates a doctor. Licensenumber must be unique, Doctor and Admin is allowed
       security:
         - bearerAuth: []
       requestBody:
@@ -384,9 +388,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
         "409":
           description: LicenseNumber conflict
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiError"      
+                $ref: "#/components/schemas/ApiError"
