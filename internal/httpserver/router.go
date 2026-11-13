@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 
 	"github.com/HemanthGowda/hospital-management-go/internal/auth"
+	"github.com/HemanthGowda/hospital-management-go/internal/doctor"
 	"github.com/HemanthGowda/hospital-management-go/internal/domain"
 	"github.com/HemanthGowda/hospital-management-go/internal/httpx"
 	"github.com/HemanthGowda/hospital-management-go/internal/patient"
@@ -23,6 +24,7 @@ type Dependencies struct {
 	Users    *user.Handler
 	Auth     *auth.Handler
 	Patients *patient.Handler
+	Doctors  *doctor.Handler
 }
 
 func NewRouter(deps Dependencies) (*fiber.App, error) {
@@ -55,6 +57,7 @@ func NewRouter(deps Dependencies) (*fiber.App, error) {
 	app.Post("/api/v1/auth/login", deps.Auth.Login)
 	app.Post("/api/v1/users", deps.Users.Register)
 	app.Put("/api/v1/patients/:id", deps.Patients.Update)
+	app.Post("/api/v1/doctors", deps.Doctors.Register)
 	app.Use(unmatchedRoute)
 
 	return app, nil

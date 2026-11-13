@@ -98,6 +98,19 @@ func TestRegisterRejectsInvalidPayload(t *testing.T) {
 	require.NotEmpty(t, body["violations"])
 }
 
+func TestRegisterValidDoctorSucceeds(t *testing.T) {
+	reset(t)
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+	status, body := request(t, http.MethodPost, "/api/v1/doctors", token, validDoctor())
+	require.Equal(t, http.StatusCreated, status)
+	require.Equal(t, "Dr. Kamath", body["name"])
+	require.Equal(t, "Dental specialist", body["speciality"])
+	require.Equal(t, "Mysore", body["address"])
+	require.Equal(t, "kmc123", body["license_number"])
+}
+
 func TestUpdatePatientRequiresAuthentication(t *testing.T) {
 	reset(t)
 	patientID := insertPatient(t)
@@ -125,9 +138,38 @@ func TestLoginRejectsBadPassword(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, status)
 }
 
+func TestRegisterDocterWithoutLoginFails(t *testing.T) {
+	reset(t)
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+
+	insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, _ := request(t, http.MethodPost, "/api/v1/doctors", "", validDoctor())
+	require.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestDoctorRegisterByLoggedInPatientFails(t *testing.T) {
+	reset(t)
+	insertUser(t, "patient@hospital.local", "ChangeMe123!", "Hospital Patient", "PATIENT")
+
+	token := login(t, "patient@hospital.local", "ChangeMe123!")
+	insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, _ := request(t, http.MethodPost, "/api/v1/doctors", token, validDoctor())
+	require.Equal(t, http.StatusForbidden, status)
+}
+
+func TestRegisterDoctorForbidsDuplicateLisenceNumber(t *testing.T) {
+	reset(t)
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+	insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, _ := request(t, http.MethodPost, "/api/v1/doctors", token, validDoctor())
+	require.Equal(t, http.StatusConflict, status)
+}
+
 func reset(t *testing.T) {
 	t.Helper()
-	_, err := application.Pool.Exec(context.Background(), `TRUNCATE TABLE patients, user_roles, users RESTART IDENTITY CASCADE`)
+	_, err := application.Pool.Exec(context.Background(), `TRUNCATE TABLE patients, doctors, user_roles, users RESTART IDENTITY CASCADE`)
 	require.NoError(t, err)
 }
 
@@ -142,6 +184,17 @@ func insertUser(t *testing.T, email, rawPassword, fullName, role string) {
 	`, id, email, string(hash), fullName)
 	require.NoError(t, err)
 	_, err = application.Pool.Exec(context.Background(), `INSERT INTO user_roles (user_id, role) VALUES ($1, $2)`, id, role)
+	require.NoError(t, err)
+}
+
+func insertDoctor(t *testing.T, name, speciality, address, license_number, department string) {
+	t.Helper()
+	id := uuid.NewString()
+	_, err := application.Pool.Exec(context.Background(), `
+		INSERT INTO doctors (
+			id, fullname, speciality, address, licensenumber, department, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, '1800-04-05', '1999-06-07')
+	`, id, name, speciality, address, license_number, department)
 	require.NoError(t, err)
 }
 
@@ -206,5 +259,15 @@ func validPatient() map[string]any {
 		"phone":               "+15551230001",
 		"bloodGroup":          "O+",
 		"notes":               "Updated by integration test",
+	}
+}
+
+func validDoctor() map[string]any {
+	return map[string]any{
+		"name":           "Dr. Kamath",
+		"speciality":     "Dental specialist",
+		"address":        "Mysore",
+		"license_number": "KMC123",
+		"department":     "Dental",
 	}
 }

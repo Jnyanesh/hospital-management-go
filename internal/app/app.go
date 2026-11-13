@@ -10,6 +10,7 @@ import (
 	"github.com/HemanthGowda/hospital-management-go/internal/auth"
 	"github.com/HemanthGowda/hospital-management-go/internal/config"
 	"github.com/HemanthGowda/hospital-management-go/internal/db"
+	"github.com/HemanthGowda/hospital-management-go/internal/doctor"
 	"github.com/HemanthGowda/hospital-management-go/internal/httpserver"
 	"github.com/HemanthGowda/hospital-management-go/internal/password"
 	"github.com/HemanthGowda/hospital-management-go/internal/patient"
@@ -23,6 +24,7 @@ type Application struct {
 	Config   config.Config
 	users    user.Repository
 	patients patient.Repository
+	doctors  doctor.Repository
 }
 
 func New(ctx context.Context, cfg config.Config) (*Application, error) {
@@ -47,10 +49,12 @@ func New(ctx context.Context, cfg config.Config) (*Application, error) {
 
 	users := user.NewPostgresRepository(pool)
 	patients := patient.NewPostgresRepository(pool)
+	doctors := doctor.NewPostgresRepository(pool)
 	encoder := password.Bcrypt{}
 	userService := user.NewService(users, encoder)
 	authService := auth.NewService(users, encoder, tokens)
 	patientService := patient.NewService(patients)
+	doctorService := doctor.NewService(doctors)
 
 	handler, err := httpserver.NewRouter(httpserver.Dependencies{
 		Ping:     pool.Ping,
@@ -58,6 +62,7 @@ func New(ctx context.Context, cfg config.Config) (*Application, error) {
 		Users:    user.NewHandler(userService),
 		Auth:     auth.NewHandler(authService),
 		Patients: patient.NewHandler(patientService),
+		Doctors:  doctor.NewHandler(doctorService),
 	})
 	if err != nil {
 		pool.Close()
@@ -70,6 +75,7 @@ func New(ctx context.Context, cfg config.Config) (*Application, error) {
 		Config:   cfg,
 		users:    users,
 		patients: patients,
+		doctors:  doctors,
 	}, nil
 }
 
