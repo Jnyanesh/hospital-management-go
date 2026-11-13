@@ -80,6 +80,13 @@ func validateCreateRequest(request RegisterDoctorRequest) []domain.Violation {
 	}
 
 	switch {
+	case strings.TrimSpace(request.Address) == "":
+		violations = append(violations, domain.Violation{Field: "address", Message: "Speciality is required"})
+	case utf8.RuneCountInString(strings.TrimSpace(request.Address)) < 2 || utf8.RuneCountInString(strings.TrimSpace(request.Address)) > 80:
+		violations = append(violations, domain.Violation{Field: "address", Message: "Speciality must be between 2 and 80 characters"})
+	}
+
+	switch {
 	case strings.TrimSpace(request.Department) == "":
 		violations = append(violations, domain.Violation{Field: "department", Message: "Deparment is required"})
 	case utf8.RuneCountInString(strings.TrimSpace(request.Department)) < 2 || utf8.RuneCountInString(strings.TrimSpace(request.Department)) > 80:

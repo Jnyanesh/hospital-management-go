@@ -2,6 +2,7 @@ package doctor
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -86,6 +87,175 @@ func TestRegisterWithLengthyLicenseNumberAndMissingNameFails(t *testing.T) {
 	require.ErrorAs(t, err, &domainErr)
 	require.Equal(t, len(domainErr.Violations), 2)
 	require.Equal(t, domainErr.Message, "Request validation failed")
+
+}
+
+func TestRegisterEmptyDepartmentFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Prasad",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "",
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 1)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+}
+
+func TestRegisterDoctorWithLengthyDepartmentFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Prasad",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    strings.Repeat("s", 90),
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 1)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+}
+
+func TestRegisterDoctorWithLengthyNameFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          strings.Repeat("abc", 80),
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Dental Care",
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 1)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+}
+
+func TestRegisterDoctorWithLengthyAddress(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       strings.Repeat("Mysuru", 80),
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Dental Care",
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 1)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+}
+
+func TestRegisterDoctorWithLengthySpeciality(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    strings.Repeat("Dental Specialist", 80),
+		LicenseNumber: "KMC123",
+		Department:    "Dental Care",
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 1)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+}
+
+func TestRegisterDoctorWithEmptySpecialityFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "",
+		LicenseNumber: "KMC123",
+		Department:    "Dental Care",
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 1)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+}
+
+func TestRegisterDoctorWithEmptyAdressAndLicenseNumberFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "",
+		Speciality:    "Dental",
+		LicenseNumber: "",
+		Department:    "Dental Care",
+	})
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, len(domainErr.Violations), 2)
+	require.Equal(t, domainErr.Message, "Request validation failed")
+}
+
+func TestRegisterDoctorWithMultipleEmptyFieldsFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err1 := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "",
+		Address:       "",
+		Speciality:    "",
+		LicenseNumber: "",
+		Department:    "Dental Care",
+	})
+
+	_, err2 := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "",
+		Address:       "",
+		Speciality:    "",
+		LicenseNumber: "",
+		Department:    "",
+	})
+	var domainErr1 *domain.Error
+	var domainErr2 *domain.Error
+
+	require.ErrorAs(t, err1, &domainErr1)
+	require.ErrorAs(t, err2, &domainErr2)
+	require.Equal(t, len(domainErr1.Violations), 4)
+	require.Equal(t, len(domainErr2.Violations), 5)
+	require.Equal(t, domainErr1.Message, "Request validation failed")
+	require.Equal(t, domainErr2.Message, "Request validation failed")
+}
+
+func TestRegisterDoctorWithMultipleFieldsLengthyFails(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          strings.Repeat("Doctor", 80),
+		Address:       strings.Repeat("Address", 80),
+		Speciality:    strings.Repeat("Dental Specialist", 80),
+		LicenseNumber: strings.Repeat("abc", 80),
+		Department:    strings.Repeat("Dental Care", 80),
+	})
+
+	var domainErr1 *domain.Error
+
+	require.ErrorAs(t, err, &domainErr1)
+	require.Equal(t, len(domainErr1.Violations), 5)
+	require.Equal(t, domainErr1.Message, "Request validation failed")
 
 }
 
