@@ -55,6 +55,25 @@ func TestResgisterRejectsExistingLicenseNumber(t *testing.T) {
 
 }
 
+func TestDoctorValuesWithSpacesAareTrimmedAndRegistered(t *testing.T) {
+	repository := newFakeUserRepo()
+	service := NewService(repository)
+
+	response, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath    ",
+		Address:       "Mysuru   ",
+		Speciality:    "    Dental Specialist",
+		LicenseNumber: "   KMC123",
+		Department:    "    Oral",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "Dr. Kamath", response.Name)
+	require.Equal(t, "Mysuru", response.Address)
+	require.Equal(t, "Dental Specialist", response.Speciality)
+	require.Equal(t, "kmc123", response.LicenseNumber)
+	require.Equal(t, "Oral", response.Department)
+}
+
 func TestInvalidDoctorRegisterFails(t *testing.T) {
 	repository := newFakeUserRepo()
 	service := NewService(repository)
