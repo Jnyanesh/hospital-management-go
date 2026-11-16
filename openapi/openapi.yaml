@@ -9,8 +9,11 @@ info:
     - POST /api/v1/users — public patient registration
     - POST /api/v1/auth/login — JWT login
     - PUT /api/v1/patients/{id} — secured patient update (ADMIN, DOCTOR)
-
     The Doctor resource is intentionally left unimplemented.
+
+    Fresh implementation
+    - POST /api/v1/doctors - register doctor
+
   contact:
     name: Hospital Engineering
     email: engineering@hospital.local
@@ -20,6 +23,7 @@ tags:
   - name: Users
   - name: Authentication
   - name: Patients
+  - name: Doctors
 components:
   securitySchemes:
     bearerAuth:
@@ -118,7 +122,8 @@ components:
             type: string
     UpdatePatientRequest:
       type: object
-      required: [fullName, primaryDoctorName, medicalRecordNumber, dateOfBirth, gender]
+      required:
+        [fullName, primaryDoctorName, medicalRecordNumber, dateOfBirth, gender]
       properties:
         fullName:
           type: string
@@ -173,6 +178,51 @@ components:
           type: string
           format: date-time
         updatedAt:
+          type: string
+          format: date-time
+    RegisterDoctorRequest:
+      type: object
+      required: [name, speciality, address, license_number, department]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 160
+        speciality:
+          type: string
+          minLength: 2
+          maxLength: 80
+        address:
+          type: string
+          minLength:
+          maxLength: 80
+        licenseNumber:
+          type: string
+          minLength: 2
+          maxLength: 40
+        department:
+          type: string
+          inLength: 2
+          maxLength: 80
+    DoctorResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        speciality:
+          type: string
+        address:
+          type: string
+        license_number:
+          type: string
+        department:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
           type: string
           format: date-time
 paths:
@@ -296,6 +346,56 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "409":
           description: Medical record number conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/doctors:
+    post:
+      tags: [Doctors]
+      summary: Register a new Doctor
+      description: Endpoint that creates a doctor. Licensenumber must be unique, Doctor and Admin is allowed
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDoctorRequest"
+            example:
+              Name: Dr. Kamath
+              speciality: Dental specialist
+              address: Mysore
+              license_number: kmc123
+              department: Dental
+      responses:
+        "201":
+          description: Docter Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorResponse"
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: LicenseNumber conflict
           content:
             application/json:
               schema:
