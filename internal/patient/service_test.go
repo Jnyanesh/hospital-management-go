@@ -30,6 +30,7 @@ func TestUpdateReplacesMutableFields(t *testing.T) {
 		BloodGroup:          str("o+"),
 		Notes:               str("Updated notes"),
 	})
+
 	require.NoError(t, err)
 	require.Equal(t, "Ada Lovelace", response.FullName)
 	require.Equal(t, "Dr. Grace Hopper", response.PrimaryDoctorName)
@@ -41,7 +42,9 @@ func TestUpdateReplacesMutableFields(t *testing.T) {
 
 func TestUpdateFailsWhenPatientMissing(t *testing.T) {
 	service := NewService(newFakePatientRepo())
+
 	_, err := service.Update(context.Background(), "missing", sampleRequest())
+
 	var domainErr *domain.Error
 	require.ErrorAs(t, err, &domainErr)
 	require.Equal(t, domain.KindNotFound, domainErr.Kind)
@@ -104,6 +107,7 @@ func (f *fakePatientRepo) FindByID(_ context.Context, id string) (Patient, error
 	if !ok {
 		return Patient{}, ErrNotFound
 	}
+
 	return patient, nil
 }
 
@@ -113,6 +117,7 @@ func (f *fakePatientRepo) MedicalRecordNumberUsedByOther(_ context.Context, medi
 			return true, nil
 		}
 	}
+
 	return false, nil
 }
 
@@ -120,6 +125,7 @@ func (f *fakePatientRepo) Update(_ context.Context, patient Patient) (Patient, e
 	if _, ok := f.patients[patient.ID]; !ok {
 		return Patient{}, ErrNotFound
 	}
+
 	f.patients[patient.ID] = patient
 	return patient, nil
 }
@@ -130,6 +136,7 @@ func (f *fakePatientRepo) ExistsByMedicalRecordNumber(_ context.Context, medical
 			return true, nil
 		}
 	}
+
 	return false, nil
 }
 

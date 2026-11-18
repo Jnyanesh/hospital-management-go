@@ -317,7 +317,7 @@ func TestGetDoctorByIdWithoutExistingDoctor(t *testing.T) {
 func TestGetDoctorByIdWithEmptyId(t *testing.T) {
 	repository := newFakeDoctorRepo()
 	service := NewService(repository)
-	
+
 	_, err1 := service.Register(context.Background(), RegisterDoctorRequest{
 		Name:          "Dr. Kamath",
 		Address:       "Mysuru",
@@ -363,11 +363,13 @@ func (f *fakeDoctorRepo) Create(_ context.Context, doctor Doctor) (Doctor, error
 	doctor.CreatedAt = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	doctor.UpdatedAt = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	f.doctors[doctor.Id] = doctor
+
 	return doctor, nil
 }
 
 func (f *fakeDoctorRepo) GetDoctorById(_ context.Context, id string) (Doctor, error) {
 	doctorDetails, ok := f.doctors[id]
+
 	if !ok {
 		return Doctor{}, ErrNotFound
 	}
