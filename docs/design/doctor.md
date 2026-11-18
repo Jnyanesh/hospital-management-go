@@ -118,3 +118,15 @@
     "path": "/api/v1/doctors"
 }
 ```
+
+**Get Doctor with wrong Id"**
+
+```
+{
+    "timestamp": "2026-11-18T07:53:27.363068092Z",
+    "status": 404,
+    "error": "Not Found",
+    "message": "Doctor not found",
+    "path": "/api/v1/doctors"
+}
+```
