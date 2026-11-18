@@ -69,6 +69,7 @@ func (r *PostgresRepository) GetDoctorById(ctx context.Context, id string) (Doct
 
 func (r *PostgresRepository) ExistsByLisenceNumber(ctx context.Context, licenseNumber string) (bool, error) {
 	var exists bool
+
 	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM doctors WHERE lower(licenseNumber) = lower($1))`, licenseNumber).Scan(&exists)
 	return exists, err
 }
@@ -90,12 +91,15 @@ func toDoctorResponse(row scanner) (Doctor, error) {
 		&doctorDetails.CreatedAt,
 		&doctorDetails.UpdatedAt,
 	)
+
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Doctor{}, ErrNotFound
 	}
+
 	if err != nil {
 		return Doctor{}, err
 	}
+
 	doctorDetails.CreatedAt = doctorDetails.CreatedAt.UTC()
 	doctorDetails.UpdatedAt = doctorDetails.UpdatedAt.UTC()
 
