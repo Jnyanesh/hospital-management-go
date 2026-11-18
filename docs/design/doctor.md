@@ -35,7 +35,7 @@
 **Implemented Url(local)**
 
 - (POST) http://localhost:8082/api/v1/doctors
-- (GET) http://localhost:8082/api/v1/doctors?id={id}
+- (GET) http://localhost:8082/api/v1/doctors/{id}
 
 ### API responses:
 

@@ -50,7 +50,7 @@ func (h *Handler) Get(c fiber.Ctx) error {
 	if !principal.HasAny(user.RoleAdmin, user.RoleDoctor, user.RolePatient) {
 		return domain.Forbidden()
 	}
-	id := strings.TrimSpace(c.Query("id"))
+	id := strings.TrimSpace(c.Params("id"))
 	if id == "" {
 		return domain.BadRequest("Doctor ID is required")
 	}

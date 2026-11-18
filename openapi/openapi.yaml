@@ -401,7 +401,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
-  /api/v1/doctors?id={id}:
+  /api/v1/doctors/{id}:
     get:
       tags: [Doctors]
       summary: Get doctor details with specific id
