@@ -41,6 +41,7 @@ func (r *PostgresRepository) Create(ctx context.Context, doctor Doctor) (Doctor,
 	if db.IsUniqueViolation(err) {
 		return Doctor{}, ErrDuplicate
 	}
+
 	if err != nil {
 		return Doctor{}, err
 	}
@@ -48,6 +49,7 @@ func (r *PostgresRepository) Create(ctx context.Context, doctor Doctor) (Doctor,
 	if err := tx.Commit(ctx); err != nil {
 		return Doctor{}, err
 	}
+
 	return doctor, nil
 }
 
@@ -61,6 +63,7 @@ func (r *PostgresRepository) GetDoctorById(ctx context.Context, id string) (Doct
 		FROM doctors
 		WHERE id = $1
 	`, id)
+
 	return toDoctorResponse(row)
 }
 
