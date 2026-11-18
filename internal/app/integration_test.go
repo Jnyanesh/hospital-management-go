@@ -167,6 +167,46 @@ func TestRegisterDoctorForbidsDuplicateLisenceNumber(t *testing.T) {
 	require.Equal(t, http.StatusConflict, status)
 }
 
+func TestInsertandGetDoctorSucceeds(t *testing.T) {
+	reset(t)
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	response := getDoctor(t, id)
+	require.Equal(t, response, validDoctorResponse(id))
+
+}
+
+func TestGetDoctorForLoggedInUserSucceeds(t *testing.T) {
+	reset(t)
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+
+	status, doctor := request(t, http.MethodGet, "/api/v1/doctors?id="+id, token, nil)
+	require.Equal(t, http.StatusOK, status)
+	require.Equal(t, doctor, getDoctor(t, id))
+}
+
+func TestGetDoctorForbidsNotLoggedInUser(t *testing.T) {
+	reset(t)
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	id := insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, _ := request(t, http.MethodGet, "/api/v1/doctors?id="+id, " ", nil)
+	require.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestGetDoctorwithEmptyIdFails(t *testing.T) {
+	reset(t)
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+
+	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+
+	status, _ := request(t, http.MethodGet, "/api/v1/doctors?id="+"", token, nil)
+	require.Equal(t, http.StatusBadRequest, status)
+}
+
 func reset(t *testing.T) {
 	t.Helper()
 	_, err := application.Pool.Exec(context.Background(), `TRUNCATE TABLE patients, doctors, user_roles, users RESTART IDENTITY CASCADE`)
@@ -187,7 +227,7 @@ func insertUser(t *testing.T, email, rawPassword, fullName, role string) {
 	require.NoError(t, err)
 }
 
-func insertDoctor(t *testing.T, name, speciality, address, license_number, department string) {
+func insertDoctor(t *testing.T, name, speciality, address, license_number, department string) string {
 	t.Helper()
 	id := uuid.NewString()
 	_, err := application.Pool.Exec(context.Background(), `
@@ -196,6 +236,7 @@ func insertDoctor(t *testing.T, name, speciality, address, license_number, depar
 		) VALUES ($1, $2, $3, $4, $5, $6, '1800-04-05', '1999-06-07')
 	`, id, name, speciality, address, license_number, department)
 	require.NoError(t, err)
+	return id
 }
 
 func insertPatient(t *testing.T) string {
@@ -220,6 +261,30 @@ func login(t *testing.T, email, rawPassword string) string {
 	token, _ := body["accessToken"].(string)
 	require.NotEmpty(t, token)
 	return token
+}
+
+func getDoctor(t *testing.T, id string) map[string]any {
+	t.Helper()
+
+	var fullname, speciality, address, licenseNumber, department string
+	var created_at, updated_at time.Time
+	err := application.Pool.QueryRow(context.Background(), `
+		SELECT id, fullname, speciality, address, licensenumber, department, created_at, updated_at
+		FROM doctors
+		WHERE id = $1
+	`, id).Scan(&id, &fullname, &speciality, &address, &licenseNumber, &department, &created_at, &updated_at)
+	require.NoError(t, err)
+
+	return map[string]any{
+		"id":             id,
+		"name":           fullname,
+		"speciality":     speciality,
+		"address":        address,
+		"license_number": licenseNumber,
+		"department":     department,
+		"created_at":     created_at.UTC().Format(time.RFC3339),
+		"updated_at":     updated_at.UTC().Format(time.RFC3339),
+	}
 }
 
 func request(t *testing.T, method, path, token string, payload any) (int, map[string]any) {
@@ -270,4 +335,18 @@ func validDoctor() map[string]any {
 		"license_number": "KMC123",
 		"department":     "Dental",
 	}
+}
+
+func validDoctorResponse(id string) map[string]any {
+	return map[string]any{
+		"id":             id,
+		"name":           "Dr. Kamath",
+		"speciality":     "Dental specialist",
+		"address":        "Mysore",
+		"license_number": "KMC123",
+		"department":     "Dental",
+		"created_at":     "1800-04-05T00:00:00Z",
+		"updated_at":     "1999-06-07T00:00:00Z",
+	}
+
 }
