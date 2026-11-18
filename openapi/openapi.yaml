@@ -13,7 +13,7 @@ info:
 
     Fresh implementation
     - POST /api/v1/doctors - register doctor
-    - GET /api/v1/doctors?id={id} - get doctor
+    - GET /api/v1/doctors/{id}- get doctor
 
   contact:
     name: Hospital Engineering
