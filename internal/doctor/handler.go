@@ -30,6 +30,7 @@ func (h *Handler) Register(c fiber.Ctx) error {
 	if !principal.HasAny(user.RoleAdmin, user.RoleDoctor) {
 		return domain.Forbidden()
 	}
+	
 	if err := httpx.Decode(c, &request); err != nil {
 		return err
 	}
@@ -61,6 +62,6 @@ func (h *Handler) Get(c fiber.Ctx) error {
 	if err != nil {
 		return domain.NotFound("Doctor not found")
 	}
-	
+
 	return httpx.WriteJSON(c, fiber.StatusOK, response)
 }
