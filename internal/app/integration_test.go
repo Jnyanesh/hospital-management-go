@@ -88,11 +88,13 @@ func TestRegisterLoginAndUpdatePatientHappyPath(t *testing.T) {
 
 func TestRegisterRejectsInvalidPayload(t *testing.T) {
 	reset(t)
+
 	status, body := request(t, http.MethodPost, "/api/v1/users", "", map[string]any{
 		"email":    "not-an-email",
 		"password": "short",
 		"fullName": "",
 	})
+
 	require.Equal(t, http.StatusBadRequest, status)
 	require.Equal(t, "Validation Failed", body["error"])
 	require.NotEmpty(t, body["violations"])
@@ -104,6 +106,7 @@ func TestRegisterValidDoctorSucceeds(t *testing.T) {
 
 	token := login(t, "admin@hospital.local", "ChangeMe123!")
 	status, body := request(t, http.MethodPost, "/api/v1/doctors", token, validDoctor())
+
 	require.Equal(t, http.StatusCreated, status)
 	require.Equal(t, "Dr. Kamath", body["name"])
 	require.Equal(t, "Dental specialist", body["speciality"])
@@ -113,28 +116,35 @@ func TestRegisterValidDoctorSucceeds(t *testing.T) {
 
 func TestUpdatePatientRequiresAuthentication(t *testing.T) {
 	reset(t)
+
 	patientID := insertPatient(t)
 	status, _ := request(t, http.MethodPut, "/api/v1/patients/"+patientID, "", validPatient())
+
 	require.Equal(t, http.StatusUnauthorized, status)
 }
 
 func TestUpdatePatientForbidsPatientRole(t *testing.T) {
 	reset(t)
+
 	insertUser(t, "patient@hospital.local", "PatientPass1", "Hospital Patient", "PATIENT")
 	patientID := insertPatient(t)
+
 	token := login(t, "patient@hospital.local", "PatientPass1")
 	status, body := request(t, http.MethodPut, "/api/v1/patients/"+patientID, token, validPatient())
+
 	require.Equal(t, http.StatusForbidden, status)
 	require.Equal(t, "Forbidden", body["error"])
 }
 
 func TestLoginRejectsBadPassword(t *testing.T) {
 	reset(t)
+
 	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
 	status, _ := request(t, http.MethodPost, "/api/v1/auth/login", "", map[string]any{
 		"email":    "admin@hospital.local",
 		"password": "WrongPassword1",
 	})
+
 	require.Equal(t, http.StatusUnauthorized, status)
 }
 
@@ -149,22 +159,68 @@ func TestRegisterDocterWithoutLoginFails(t *testing.T) {
 
 func TestDoctorRegisterByLoggedInPatientFails(t *testing.T) {
 	reset(t)
-	insertUser(t, "patient@hospital.local", "ChangeMe123!", "Hospital Patient", "PATIENT")
 
+	insertUser(t, "patient@hospital.local", "ChangeMe123!", "Hospital Patient", "PATIENT")
 	token := login(t, "patient@hospital.local", "ChangeMe123!")
 	insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
 	status, _ := request(t, http.MethodPost, "/api/v1/doctors", token, validDoctor())
+
 	require.Equal(t, http.StatusForbidden, status)
 }
 
 func TestRegisterDoctorForbidsDuplicateLisenceNumber(t *testing.T) {
 	reset(t)
-	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
 
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
 	token := login(t, "admin@hospital.local", "ChangeMe123!")
 	insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
 	status, _ := request(t, http.MethodPost, "/api/v1/doctors", token, validDoctor())
+
 	require.Equal(t, http.StatusConflict, status)
+}
+
+func TestInsertandGetDoctorSucceeds(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	response := getDoctor(t, id)
+
+	require.Equal(t, response, validDoctorResponse(id))
+
+}
+
+func TestGetDoctorForLoggedInUserSucceeds(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, doctor := request(t, http.MethodGet, "/api/v1/doctors?id="+id, token, nil)
+
+	require.Equal(t, http.StatusOK, status)
+	require.Equal(t, doctor, getDoctor(t, id))
+}
+
+func TestGetDoctorForbidsNotLoggedInUser(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	id := insertDoctor(t, "Dr. Singh", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, _ := request(t, http.MethodGet, "/api/v1/doctors?id="+id, " ", nil)
+
+	require.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestGetDoctorwithEmptyIdFails(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	status, _ := request(t, http.MethodGet, "/api/v1/doctors?id="+"", token, nil)
+
+	require.Equal(t, http.StatusBadRequest, status)
 }
 
 func reset(t *testing.T) {
@@ -175,51 +231,85 @@ func reset(t *testing.T) {
 
 func insertUser(t *testing.T, email, rawPassword, fullName, role string) {
 	t.Helper()
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(rawPassword), bcrypt.MinCost)
 	require.NoError(t, err)
+
 	id := uuid.NewString()
 	_, err = application.Pool.Exec(context.Background(), `
 		INSERT INTO users (id, email, password_hash, full_name, enabled)
 		VALUES ($1, $2, $3, $4, true)
 	`, id, email, string(hash), fullName)
+
 	require.NoError(t, err)
 	_, err = application.Pool.Exec(context.Background(), `INSERT INTO user_roles (user_id, role) VALUES ($1, $2)`, id, role)
 	require.NoError(t, err)
 }
 
-func insertDoctor(t *testing.T, name, speciality, address, license_number, department string) {
+func insertDoctor(t *testing.T, name, speciality, address, license_number, department string) string {
 	t.Helper()
 	id := uuid.NewString()
+
 	_, err := application.Pool.Exec(context.Background(), `
 		INSERT INTO doctors (
 			id, fullname, speciality, address, licensenumber, department, created_at, updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, '1800-04-05', '1999-06-07')
 	`, id, name, speciality, address, license_number, department)
+
 	require.NoError(t, err)
+	return id
 }
 
 func insertPatient(t *testing.T) string {
 	t.Helper()
+
 	id := uuid.NewString()
 	_, err := application.Pool.Exec(context.Background(), `
 		INSERT INTO patients (
 			id, full_name, primary_doctor_name, medical_record_number, date_of_birth, gender, notes
 		) VALUES ($1, 'Seed Patient', 'Dr. Seed', 'MRN-100001', '1990-01-01', 'UNKNOWN', 'A seeded patient')
 	`, id)
+
 	require.NoError(t, err)
 	return id
 }
 
 func login(t *testing.T, email, rawPassword string) string {
 	t.Helper()
+
 	status, body := request(t, http.MethodPost, "/api/v1/auth/login", "", map[string]any{
 		"email":    email,
 		"password": rawPassword,
 	})
+
 	require.Equal(t, http.StatusOK, status)
 	token, _ := body["accessToken"].(string)
 	require.NotEmpty(t, token)
 	return token
+}
+
+func getDoctor(t *testing.T, id string) map[string]any {
+	t.Helper()
+
+	var fullname, speciality, address, licenseNumber, department string
+	var created_at, updated_at time.Time
+	err := application.Pool.QueryRow(context.Background(), `
+		SELECT id, fullname, speciality, address, licensenumber, department, created_at, updated_at
+		FROM doctors
+		WHERE id = $1
+	`, id).Scan(&id, &fullname, &speciality, &address, &licenseNumber, &department, &created_at, &updated_at)
+	require.NoError(t, err)
+
+	return map[string]any{
+		"id":             id,
+		"name":           fullname,
+		"speciality":     speciality,
+		"address":        address,
+		"license_number": licenseNumber,
+		"department":     department,
+		"created_at":     created_at.UTC().Format(time.RFC3339),
+		"updated_at":     updated_at.UTC().Format(time.RFC3339),
+	}
 }
 
 func request(t *testing.T, method, path, token string, payload any) (int, map[string]any) {
@@ -270,4 +360,18 @@ func validDoctor() map[string]any {
 		"license_number": "KMC123",
 		"department":     "Dental",
 	}
+}
+
+func validDoctorResponse(id string) map[string]any {
+	return map[string]any{
+		"id":             id,
+		"name":           "Dr. Kamath",
+		"speciality":     "Dental specialist",
+		"address":        "Mysore",
+		"license_number": "KMC123",
+		"department":     "Dental",
+		"created_at":     "1800-04-05T00:00:00Z",
+		"updated_at":     "1999-06-07T00:00:00Z",
+	}
+
 }

@@ -13,5 +13,5 @@ var (
 type Repository interface {
 	ExistsByLisenceNumber(ctx context.Context, licenseNumber string) (bool, error)
 	Create(ctx context.Context, doctor Doctor) (Doctor, error)
+	GetDoctorById(ctx context.Context, id string) (Doctor, error)
 }
-

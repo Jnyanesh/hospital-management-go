@@ -13,6 +13,7 @@ info:
 
     Fresh implementation
     - POST /api/v1/doctors - register doctor
+    - GET /api/v1/doctors/{id}- get doctor
 
   contact:
     name: Hospital Engineering
@@ -396,6 +397,45 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "409":
           description: LicenseNumber conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/doctors/{id}:
+    get:
+      tags: [Doctors]
+      summary: Get doctor details with specific id
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+      responses:
+        "200":
+          description: Docter fetched succesfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Doctor Not found
           content:
             application/json:
               schema:

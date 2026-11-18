@@ -11,7 +11,7 @@ import (
 )
 
 func TestRegisterCreatesDoctor(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	response, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -30,7 +30,7 @@ func TestRegisterCreatesDoctor(t *testing.T) {
 }
 
 func TestResgisterRejectsExistingLicenseNumber(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 	response, _ := service.Register(context.Background(), RegisterDoctorRequest{
 		Name:          "Dr. Kamath",
@@ -56,7 +56,7 @@ func TestResgisterRejectsExistingLicenseNumber(t *testing.T) {
 }
 
 func TestDoctorValuesWithSpacesAareTrimmedAndRegistered(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	response, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -75,7 +75,7 @@ func TestDoctorValuesWithSpacesAareTrimmedAndRegistered(t *testing.T) {
 }
 
 func TestInvalidDoctorRegisterFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -92,7 +92,7 @@ func TestInvalidDoctorRegisterFails(t *testing.T) {
 }
 
 func TestRegisterWithLengthyLicenseNumberAndMissingNameFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -110,7 +110,7 @@ func TestRegisterWithLengthyLicenseNumberAndMissingNameFails(t *testing.T) {
 }
 
 func TestRegisterEmptyDepartmentFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -127,7 +127,7 @@ func TestRegisterEmptyDepartmentFails(t *testing.T) {
 }
 
 func TestRegisterDoctorWithLengthyDepartmentFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -144,7 +144,7 @@ func TestRegisterDoctorWithLengthyDepartmentFails(t *testing.T) {
 }
 
 func TestRegisterDoctorWithLengthyNameFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -161,7 +161,7 @@ func TestRegisterDoctorWithLengthyNameFails(t *testing.T) {
 }
 
 func TestRegisterDoctorWithLengthyAddress(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -178,7 +178,7 @@ func TestRegisterDoctorWithLengthyAddress(t *testing.T) {
 }
 
 func TestRegisterDoctorWithLengthySpeciality(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -195,7 +195,7 @@ func TestRegisterDoctorWithLengthySpeciality(t *testing.T) {
 }
 
 func TestRegisterDoctorWithEmptySpecialityFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -212,7 +212,7 @@ func TestRegisterDoctorWithEmptySpecialityFails(t *testing.T) {
 }
 
 func TestRegisterDoctorWithEmptyAdressAndLicenseNumberFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -229,7 +229,7 @@ func TestRegisterDoctorWithEmptyAdressAndLicenseNumberFails(t *testing.T) {
 }
 
 func TestRegisterDoctorWithMultipleEmptyFieldsFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err1 := service.Register(context.Background(), RegisterDoctorRequest{
@@ -259,7 +259,7 @@ func TestRegisterDoctorWithMultipleEmptyFieldsFails(t *testing.T) {
 }
 
 func TestRegisterDoctorWithMultipleFieldsLengthyFails(t *testing.T) {
-	repository := newFakeUserRepo()
+	repository := newFakeDoctorRepo()
 	service := NewService(repository)
 
 	_, err := service.Register(context.Background(), RegisterDoctorRequest{
@@ -278,27 +278,100 @@ func TestRegisterDoctorWithMultipleFieldsLengthyFails(t *testing.T) {
 
 }
 
-type fakeUserRepo struct {
-	byname map[string]Doctor
+func TestGetDoctorByIdReturnsDoctorDetails(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	response, err1 := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+	require.NoError(t, err1)
+
+	doctorDetails, err2 := service.GetDoctorById(context.Background(), response.Id)
+
+	require.NoError(t, err2)
+	require.Equal(t, "doctor-1", doctorDetails.Id)
+	require.Equal(t, "Dr. Kamath", doctorDetails.Name)
+	require.Equal(t, "Mysuru", doctorDetails.Address)
+	require.Equal(t, "Dental Specialist", doctorDetails.Speciality)
+	require.Equal(t, "kmc123", doctorDetails.LicenseNumber)
+	require.Equal(t, "Oral", doctorDetails.Department)
 }
 
-func newFakeUserRepo() *fakeUserRepo {
-	return &fakeUserRepo{byname: map[string]Doctor{}}
+func TestGetDoctorByIdWithoutExistingDoctor(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	_, err := service.GetDoctorById(context.Background(), "Doctor-1")
+
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, domain.KindNotFound, domainErr.Kind)
+	require.Equal(t, domainErr.Message, "Doctor Not Found")
+
+}
+func TestGetDoctorByIdWithEmptyId(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	_, err1 := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+	require.NoError(t, err1)
+
+	_, err2 := service.GetDoctorById(context.Background(), "")
+
+	var domainErr *domain.Error
+	require.ErrorAs(t, err2, &domainErr)
+	require.Equal(t, domainErr.Message, "Doctor Not Found")
 }
 
-func (f *fakeUserRepo) ExistsByLisenceNumber(_ context.Context, licenseNumber string) (bool, error) {
-	_, ok := f.byname[licenseNumber]
+type fakeDoctorRepo struct {
+	doctors map[string]Doctor
+}
+
+func newFakeDoctorRepo() *fakeDoctorRepo {
+	return &fakeDoctorRepo{doctors: map[string]Doctor{}}
+}
+
+func (f *fakeDoctorRepo) ExistsByLisenceNumber(_ context.Context, licenseNumber string) (bool, error) {
+	ok := false
+	for id := range f.doctors {
+		if f.doctors[id].LicenseNumber == licenseNumber {
+			ok = true
+			break
+		}
+	}
+
 	return ok, nil
 }
 
-func (f *fakeUserRepo) Create(_ context.Context, doctor Doctor) (Doctor, error) {
-	if _, ok := f.byname[doctor.LicenseNumber]; ok {
+func (f *fakeDoctorRepo) Create(_ context.Context, doctor Doctor) (Doctor, error) {
+	doctor.Id = "doctor-1"
+	if _, ok := f.doctors[doctor.Id]; ok {
 		return Doctor{}, ErrDuplicate
 	}
-	doctor.Id = "doctor-1"
 
 	doctor.CreatedAt = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	doctor.UpdatedAt = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
-	f.byname[doctor.LicenseNumber] = doctor
+	f.doctors[doctor.Id] = doctor
+
 	return doctor, nil
+}
+
+func (f *fakeDoctorRepo) GetDoctorById(_ context.Context, id string) (Doctor, error) {
+	doctorDetails, ok := f.doctors[id]
+
+	if !ok {
+		return Doctor{}, ErrNotFound
+	}
+	return doctorDetails, nil
 }

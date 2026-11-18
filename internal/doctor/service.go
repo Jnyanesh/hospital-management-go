@@ -96,6 +96,17 @@ func validateCreateRequest(request RegisterDoctorRequest) []domain.Violation {
 	return violations
 }
 
+func (s *Service) GetDoctorById(ctx context.Context, id string) (DoctorResponse, error) {
+
+	doctorDetails, err := s.repository.GetDoctorById(ctx, id)
+	if err != nil {
+		return DoctorResponse{}, domain.NotFound("Doctor Not Found")
+	}
+
+	return toResponse(doctorDetails), nil
+
+}
+
 func toResponse(doctor Doctor) DoctorResponse {
 	return DoctorResponse{
 		Id:            doctor.Id,
