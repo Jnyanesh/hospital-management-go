@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -30,7 +31,7 @@ func (h *Handler) Register(c fiber.Ctx) error {
 	if !principal.HasAny(user.RoleAdmin, user.RoleDoctor) {
 		return domain.Forbidden()
 	}
-	
+
 	if err := httpx.Decode(c, &request); err != nil {
 		return err
 	}
@@ -57,10 +58,53 @@ func (h *Handler) Get(c fiber.Ctx) error {
 	if id == "" {
 		return domain.BadRequest("Doctor ID is required")
 	}
-	
+
 	response, err := h.service.GetDoctorById(c.Context(), id)
 	if err != nil {
 		return domain.NotFound("Doctor not found")
+	}
+
+	return httpx.WriteJSON(c, fiber.StatusOK, response)
+}
+
+func (h *Handler) Search(c fiber.Ctx) error {
+	principal, ok := auth.PrincipalFrom(c.Context())
+
+	if !ok {
+		return domain.Unauthorized("Authentication is required")
+	}
+
+	if !principal.HasAny(user.RoleAdmin, user.RoleDoctor, user.RolePatient) {
+		return domain.Forbidden()
+	}
+
+	name := strings.TrimSpace(c.Query("name"))
+	if name == "" {
+		return domain.BadRequest("Doctor name is required")
+	}
+
+	page := 1
+	limit := 20
+
+	if value := c.Query("page"); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 1 {
+			return domain.BadRequest("Invalid page number")
+		}
+		page = parsed
+	}
+
+	if value := c.Query("limit"); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 1 {
+			return domain.BadRequest("Invalid Limit")
+		}
+		limit = parsed
+	}
+
+	response, err := h.service.SearchDoctorByName(c.Context(), name, page, limit)
+	if err != nil {
+		return err
 	}
 
 	return httpx.WriteJSON(c, fiber.StatusOK, response)

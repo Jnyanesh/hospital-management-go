@@ -3,6 +3,7 @@ package doctor
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/HemanthGowda/hospital-management-go/internal/db"
 	"github.com/google/uuid"
@@ -65,6 +66,50 @@ func (r *PostgresRepository) GetDoctorById(ctx context.Context, id string) (Doct
 	`, id)
 
 	return toDoctorResponse(row)
+}
+
+func (r *PostgresRepository) SearchDoctorByName(ctx context.Context, name string, limit, offset int) ([]Doctor, error) {
+	rows, err := r.pool.Query(ctx, `
+        SELECT `+doctorColumns+`
+        FROM doctors
+        WHERE fullname ILIKE $1
+        ORDER BY fullname ASC
+		LIMIT $2 OFFSET $3
+    `, "%"+strings.TrimSpace(name)+"%", limit, offset)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	doctors := make([]Doctor, 0)
+
+	for rows.Next() {
+		doctor, err := toDoctorResponse(rows)
+		if err != nil {
+			return nil, err
+		}
+		doctors = append(doctors, doctor)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return doctors, nil
+}
+
+func (r *PostgresRepository) CountDoctors(ctx context.Context, name string) (int, error) {
+
+	var count int
+	err := r.pool.QueryRow(ctx, `
+        SELECT COUNT(*)
+        FROM doctors
+        WHERE fullname ILIKE $1
+		`, "%"+strings.TrimSpace(name)+"%").Scan(&count)
+
+	return count, err
+
 }
 
 func (r *PostgresRepository) ExistsByLisenceNumber(ctx context.Context, licenseNumber string) (bool, error) {

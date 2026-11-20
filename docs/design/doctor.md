@@ -21,12 +21,15 @@
 
 - Register a doctor with valid details
 - Get doctor by Id
+- Search a doctor by name
 
 **Database Queries**
 
 - Insert a doctor record into a table
 - Check for license number if it already exists
 - Get doctor by doctor id
+- Search doctor by name
+- Get total count of doctors present by name
 
 **Testing**
 
@@ -36,6 +39,7 @@
 
 - (POST) http://localhost:8082/api/v1/doctors
 - (GET) http://localhost:8082/api/v1/doctors/{id}
+- (GET) http://localhost:8082/api/v1/doctor?name={name}&page={page}&limit={limit}
 
 ### API responses:
 
@@ -128,5 +132,55 @@
     "error": "Not Found",
     "message": "Doctor not found",
     "path": "/api/v1/doctors"
+}
+```
+
+**Search a Doctor with name in page 1**
+
+```
+{
+    "doctor_list": [
+        {
+            "id": "61fac9bb-a681-4f9a-a83f-bd730c68bfd2",
+            "name": "Dr. Jameela",
+            "speciality": "Orthopedician",
+            "address": "Mysore",
+            "license_number": "kmc336",
+            "department": "Orthopediology",
+            "created_at": "2026-11-19T12:34:39.915774Z",
+            "updated_at": "2026-11-19T12:34:39.915774Z"
+        },
+        {
+            "id": "97002fe1-cd18-40c5-8ca2-5c4771a70cfc",
+            "name": "Dr. Meena",
+            "speciality": "Gastroenterologist",
+            "address": "Mysore",
+            "license_number": "kmc134",
+            "department": "Gastroenterology",
+            "created_at": "2026-11-18T06:21:28.827837Z",
+            "updated_at": "2026-11-18T06:21:28.827837Z"
+        }
+    ],
+    "total": 3
+}
+```
+
+**Search a Doctor with name in page 2**
+
+```
+{
+    "doctor_list": [
+        {
+            "id": "52d1322e-78d8-4053-a668-684e1916db2a",
+            "name": "Dr. Meera",
+            "speciality": "General Physician",
+            "address": "Mysore",
+            "license_number": "kmc144",
+            "department": "General Medicine",
+            "created_at": "2026-11-19T12:33:30.160371Z",
+            "updated_at": "2026-11-19T12:33:30.160371Z"
+        }
+    ],
+    "total": 3
 }
 ```
