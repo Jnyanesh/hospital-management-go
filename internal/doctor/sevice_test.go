@@ -2,6 +2,8 @@ package doctor
 
 import (
 	"context"
+	"fmt"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -334,8 +336,146 @@ func TestGetDoctorByIdWithEmptyId(t *testing.T) {
 	require.Equal(t, domainErr.Message, "Doctor Not Found")
 }
 
+func TestSearchDoctorWithName(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	_, err1 := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+	_, err2 := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamala",
+		Address:       "Mysuru",
+		Speciality:    "Heart Specialist",
+		LicenseNumber: "KMC345",
+		Department:    "Cardiology",
+	})
+	require.NoError(t, err1)
+	require.NoError(t, err2)
+
+	doctors, err3 := service.SearchDoctorByName(context.Background(), "Dr. Kam", 1, 20)
+
+	require.NoError(t, err3)
+
+	require.Equal(t, len(doctors.Doctors), 2)
+	require.Equal(t, doctors.Total, 2)
+
+}
+
+func TestSearchDoctorWithLimitSetTo1ReturnsSingleDoctor(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	_, err1 := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+	_, err2 := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamala",
+		Address:       "Mysuru",
+		Speciality:    "Heart Specialist",
+		LicenseNumber: "KMC345",
+		Department:    "Cardiology",
+	})
+	require.NoError(t, err1)
+	require.NoError(t, err2)
+
+	doctors, err3 := service.SearchDoctorByName(context.Background(), "Dr. Kam", 1, 1)
+
+	require.NoError(t, err3)
+
+	require.Equal(t, len(doctors.Doctors), 1)
+	require.Equal(t, doctors.Total, 2)
+
+}
+func TestSearchDoctorWithLimitSetTo2Returns2Doctors(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+	require.NoError(t, err)
+
+	_, err = service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamala",
+		Address:       "Mysuru",
+		Speciality:    "Heart Specialist",
+		LicenseNumber: "KMC345",
+		Department:    "Cardiology",
+	})
+	require.NoError(t, err)
+
+	_, err = service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Karan",
+		Address:       "Banglore",
+		Speciality:    "Nephrologist",
+		LicenseNumber: "KMC145",
+		Department:    "Nephrology",
+	})
+	require.NoError(t, err)
+
+	doctors, err := service.SearchDoctorByName(context.Background(), "Dr. Ka", 1, 2)
+
+	require.NoError(t, err)
+
+	require.Equal(t, len(doctors.Doctors), 2)
+	require.Equal(t, 3, doctors.Total)
+}
+
+func TestSearchDoctorWithoutRelevantDoctorreturnEmptyPage(t *testing.T){
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	_, err := service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+	require.NoError(t, err)
+
+	_, err = service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Kamala",
+		Address:       "Mysuru",
+		Speciality:    "Heart Specialist",
+		LicenseNumber: "KMC345",
+		Department:    "Cardiology",
+	})
+	require.NoError(t, err)
+
+	_, err = service.Register(context.Background(), RegisterDoctorRequest{
+		Name:          "Dr. Karan",
+		Address:       "Banglore",
+		Speciality:    "Nephrologist",
+		LicenseNumber: "KMC145",
+		Department:    "Nephrology",
+	})
+	require.NoError(t, err)
+
+	doctors, err := service.SearchDoctorByName(context.Background(), "za", 1, 2)
+
+	require.NoError(t, err)
+
+	require.Equal(t, len(doctors.Doctors), 0)
+	require.Equal(t, doctors.Total, 0)
+}
+
 type fakeDoctorRepo struct {
 	doctors map[string]Doctor
+	nextId  int
 }
 
 func newFakeDoctorRepo() *fakeDoctorRepo {
@@ -355,11 +495,8 @@ func (f *fakeDoctorRepo) ExistsByLisenceNumber(_ context.Context, licenseNumber 
 }
 
 func (f *fakeDoctorRepo) Create(_ context.Context, doctor Doctor) (Doctor, error) {
-	doctor.Id = "doctor-1"
-	if _, ok := f.doctors[doctor.Id]; ok {
-		return Doctor{}, ErrDuplicate
-	}
-
+	f.nextId++
+	doctor.Id = fmt.Sprintf("doctor-%d", f.nextId)
 	doctor.CreatedAt = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	doctor.UpdatedAt = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	f.doctors[doctor.Id] = doctor
@@ -374,4 +511,40 @@ func (f *fakeDoctorRepo) GetDoctorById(_ context.Context, id string) (Doctor, er
 		return Doctor{}, ErrNotFound
 	}
 	return doctorDetails, nil
+}
+
+func (f *fakeDoctorRepo) SearchDoctorByName(_ context.Context, name string, limit, offset int) ([]Doctor, error) {
+	doctors := make([]Doctor, 0)
+
+	for _, doctor := range f.doctors {
+		if strings.Contains(strings.ToLower(doctor.Name), strings.ToLower(name)) {
+			doctors = append(doctors, doctor)
+		}
+	}
+
+	sort.Slice(doctors, func(i, j int) bool {
+		return doctors[i].Name < doctors[j].Name
+	})
+
+	if offset >= len(doctors) {
+		return []Doctor{}, nil
+	}
+
+	end := offset + limit
+	if end > len(doctors) {
+		end = len(doctors)
+	}
+
+	return doctors[offset:end], nil
+}
+
+func (f *fakeDoctorRepo) CountDoctors(_ context.Context, name string) (int, error) {
+	var count int
+
+	for id := range f.doctors {
+		if strings.Contains(strings.ToLower(f.doctors[id].Name), strings.ToLower(name)) {
+			count += 1
+		}
+	}
+	return count, nil
 }

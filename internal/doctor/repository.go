@@ -14,4 +14,6 @@ type Repository interface {
 	ExistsByLisenceNumber(ctx context.Context, licenseNumber string) (bool, error)
 	Create(ctx context.Context, doctor Doctor) (Doctor, error)
 	GetDoctorById(ctx context.Context, id string) (Doctor, error)
+	SearchDoctorByName(ctx context.Context, id string, limit, offset int) ([]Doctor, error)
+	CountDoctors(ctx context.Context, name string) (int, error)
 }

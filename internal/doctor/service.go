@@ -107,6 +107,28 @@ func (s *Service) GetDoctorById(ctx context.Context, id string) (DoctorResponse,
 
 }
 
+func (s *Service) SearchDoctorByName(ctx context.Context, name string, page, limit int) (ListDoctorResponse, error) {
+	offset := (page - 1) * limit
+
+	doctors, err := s.repository.SearchDoctorByName(ctx, name, limit, offset)
+	if err != nil {
+		return ListDoctorResponse{}, err
+	}
+
+	responses := make([]DoctorResponse, 0, len(doctors))
+
+	for _, doctor := range doctors {
+		responses = append(responses, toResponse(doctor))
+	}
+
+	total, err := s.repository.CountDoctors(ctx, name)
+
+	return ListDoctorResponse{
+		Doctors: responses,
+		Total:   total,
+	}, nil
+}
+
 func toResponse(doctor Doctor) DoctorResponse {
 	return DoctorResponse{
 		Id:            doctor.Id,

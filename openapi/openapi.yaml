@@ -13,7 +13,8 @@ info:
 
     Fresh implementation
     - POST /api/v1/doctors - register doctor
-    - GET /api/v1/doctors/{id}- get doctor
+    - GET /api/v1/doctors/{id} - get doctor
+    - GET /api/v1/doctors?name={name}&page={page}&limit={limit}
 
   contact:
     name: Hospital Engineering
@@ -409,9 +410,16 @@ paths:
         - bearerAuth: []
       requestBody:
         required: false
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         "200":
-          description: Docter fetched succesfully
+          description: Doctor fetched succesfully
           content:
             application/json:
               schema:
@@ -436,6 +444,59 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "404":
           description: Doctor Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/doctors?:
+    get:
+      tags:
+        - Doctors
+      summary: Search doctor details by name
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Name of the doctor to search for
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: true
+          description: Number of records per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Doctors fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden access
           content:
             application/json:
               schema:
