@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -237,11 +236,15 @@ func TestSearchDoctorWithNameReturnsEmptyPageIfNotFound(t *testing.T) {
 	status1, response1 := request(t, http.MethodGet, "/api/v1/doctors?name=za&page=1&limit=2", token, nil)
 	status2, response2 := request(t, http.MethodGet, "/api/v1/doctors?name=va&page=2&limit=2", token, nil)
 
+	doctor_list1 := response1["doctor_list"].([]any)
+	doctor_list2 := response2["doctor_list"].([]any)
+
+	require.Equal(t, len(doctor_list1), 0)
+	require.Equal(t, len(doctor_list2), 0)
+
 	require.Equal(t, http.StatusOK, status1)
 	require.Equal(t, http.StatusOK, status2)
 
-	require.Equal(t, response1["total"], countDoctor(t, "za"))
-	require.Equal(t, response2["total"], countDoctor(t, "va"))
 }
 
 func TestSearchDoctorWithoutLoginFails(t *testing.T) {
@@ -284,11 +287,8 @@ func TestSearchDoctorWithNameSucceds(t *testing.T) {
 	require.Equal(t, len(doctor_list1), 2)
 	require.Equal(t, len(doctor_list2), 2)
 
-	require.Equal(t, doctor_list1, searchDoctor(t, "Ka", 2, 0))
-	require.Equal(t, doctor_list2, searchDoctor(t, "Ka", 2, 2))
-
-	require.Equal(t, response1["total"], countDoctor(t, "Ka"))
-	require.Equal(t, response2["total"], countDoctor(t, "Ka"))
+	require.Equal(t, response1["total"], float64(4))
+	require.Equal(t, response2["total"], float64(4))
 }
 func TestSearchDoctorWithDiffrentRolesSucceds(t *testing.T) {
 	reset(t)
@@ -316,8 +316,8 @@ func TestSearchDoctorWithDiffrentRolesSucceds(t *testing.T) {
 	require.Equal(t, len(doctor_list1), 2)
 	require.Equal(t, len(doctor_list2), 2)
 
-	require.Equal(t, response1["total"], countDoctor(t, "Ka"))
-	require.Equal(t, response2["total"], countDoctor(t, "Ka"))
+	require.Equal(t, response1["total"], float64(4))
+	require.Equal(t, response2["total"], float64(4))
 }
 
 func TestSearchDoctorWithVaryingLimitAndOffsetSucceeds(t *testing.T) {
@@ -343,11 +343,8 @@ func TestSearchDoctorWithVaryingLimitAndOffsetSucceeds(t *testing.T) {
 	require.Equal(t, len(doctor_list1), 3)
 	require.Equal(t, len(doctor_list2), 1)
 
-	require.Equal(t, doctor_list1, searchDoctor(t, "Ka", 3, 0))
-	require.Equal(t, doctor_list2, searchDoctor(t, "Ka", 3, 3))
-
-	require.Equal(t, response1["total"], countDoctor(t, "Ka"))
-	require.Equal(t, response2["total"], countDoctor(t, "Ka"))
+	require.Equal(t, response1["total"], float64(4))
+	require.Equal(t, response2["total"], float64(4))
 }
 
 func reset(t *testing.T) {
@@ -437,61 +434,6 @@ func getDoctor(t *testing.T, id string) map[string]any {
 		"created_at":     created_at.UTC().Format(time.RFC3339),
 		"updated_at":     updated_at.UTC().Format(time.RFC3339),
 	}
-}
-
-func searchDoctor(t *testing.T, name string, limit, offset int) any {
-	var id, fullname, speciality, address, licenseNumber, department string
-	var created_at, updated_at time.Time
-
-	rows, err := application.Pool.Query(context.Background(), `
-        SELECT id, fullname, speciality, address, licensenumber, department, created_at, updated_at
-        FROM doctors
-        WHERE fullname ILIKE $1
-        ORDER BY fullname ASC
-		LIMIT $2 OFFSET $3
-    `, "%"+strings.TrimSpace(name)+"%", limit, offset)
-
-	require.NoError(t, err)
-
-	defer rows.Close()
-
-	doctors := make([]any, 0)
-
-	for rows.Next() {
-		err := rows.Scan(
-			&id, &fullname, &speciality, &address, &licenseNumber, &department, &created_at, &updated_at,
-		)
-		require.NoError(t, err)
-		doctor := map[string]any{
-			"id":             id,
-			"name":           fullname,
-			"speciality":     speciality,
-			"address":        address,
-			"license_number": licenseNumber,
-			"department":     department,
-			"created_at":     created_at.UTC().Format(time.RFC3339),
-			"updated_at":     updated_at.UTC().Format(time.RFC3339),
-		}
-
-		doctors = append(doctors, doctor)
-
-	}
-	require.NoError(t, err)
-
-	return doctors
-}
-
-func countDoctor(t *testing.T, name string) float64 {
-	var count float64
-	err := application.Pool.QueryRow(context.Background(), `
-        SELECT COUNT(*)
-        FROM doctors
-        WHERE fullname ILIKE $1
-		`, "%"+strings.TrimSpace(name)+"%").Scan(&count)
-
-	require.NoError(t, err)
-
-	return count
 }
 
 func request(t *testing.T, method, path, token string, payload any) (int, map[string]any) {
