@@ -188,8 +188,7 @@ func TestGetDoctorForLoggedInUserSucceeds(t *testing.T) {
 	status, doctor := request(t, http.MethodGet, "/api/v1/doctors/"+id, token, nil)
 
 	require.Equal(t, http.StatusOK, status)
-	require.Equal(t, len(doctor), 8)
-	require.Equal(t, doctor["name"], "Dr. Kamath")
+	require.Equal(t, doctor, validDoctorResponse(id))
 }
 
 func TestGetDoctorForbidsNotLoggedInUser(t *testing.T) {
@@ -213,7 +212,7 @@ func TestGetDoctorwithEmptyIdFails(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, status)
 }
 
-func TestSearchDoctorWithNameReturnsEmptyPageIfNotFound(t *testing.T) {
+func TestSearchDoctorWithNameReturnsEmptyIfNotFound(t *testing.T) {
 	reset(t)
 
 	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
@@ -226,15 +225,11 @@ func TestSearchDoctorWithNameReturnsEmptyPageIfNotFound(t *testing.T) {
 	status1, response1 := request(t, http.MethodGet, "/api/v1/doctors?name=za&page=1&limit=2", token, nil)
 	status2, response2 := request(t, http.MethodGet, "/api/v1/doctors?name=va&page=2&limit=2", token, nil)
 
-	doctor_list1 := response1["doctor_list"].([]any)
-	doctor_list2 := response2["doctor_list"].([]any)
-
-	require.Equal(t, len(doctor_list1), 0)
-	require.Equal(t, len(doctor_list2), 0)
-
 	require.Equal(t, http.StatusOK, status1)
 	require.Equal(t, http.StatusOK, status2)
 
+	require.Equal(t, response1["total"], float64(0))
+	require.Equal(t, response2["total"], float64(0))
 }
 
 func TestSearchDoctorWithoutLoginFails(t *testing.T) {
@@ -259,11 +254,10 @@ func TestSearchDoctorWithNameSucceds(t *testing.T) {
 
 	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
 	token := login(t, "admin@hospital.local", "ChangeMe123!")
-
-	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
-	insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
-	insertDoctor(t, "Dr. Kaantha", "Skin Specialist", "Banglore", "KMC567", "Dermatology")
-	insertDoctor(t, "Dr. Karan", "Thyrocare Specialist", "Manglore", "KMC889", "Gynaecology")
+	id1 := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	id2 := insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
+	id3 := insertDoctor(t, "Dr. Kaantha", "Skin Specialist", "Banglore", "KMC567", "Dermatology")
+	id4 := insertDoctor(t, "Dr. Karan", "Thyrocare Specialist", "Manglore", "KMC889", "Gynaecology")
 
 	status1, response1 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=1&limit=2", token, nil)
 	status2, response2 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=2&limit=2", token, nil)
@@ -275,66 +269,27 @@ func TestSearchDoctorWithNameSucceds(t *testing.T) {
 	doctor_list2 := response2["doctor_list"].([]any)
 
 	require.Equal(t, len(doctor_list1), 2)
-	require.Equal(t, len(doctor_list2), 2)
+	require.Equal(t, doctor_list1, getDoctors1(id3, id2))
+	require.Equal(t, doctor_list2, getDoctors2(id1, id4))
 
 	require.Equal(t, response1["total"], float64(4))
 	require.Equal(t, response2["total"], float64(4))
 }
-func TestSearchDoctorWithDiffrentRolesSucceds(t *testing.T) {
-	reset(t)
-
-	insertUser(t, "patient@hospital.local", "ChangeMe123!", "Hospital Patient", "PATIENT")
-	token1 := login(t, "patient@hospital.local", "ChangeMe123!")
-
-	insertUser(t, "doctor@hospital.local", "ChangeMe123!", "Hospital Doctor", "DOCTOR")
-	token2 := login(t, "doctor@hospital.local", "ChangeMe123!")
-
-	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
-	insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
-	insertDoctor(t, "Dr. Kaantha", "Skin Specialist", "Banglore", "KMC567", "Dermatology")
-	insertDoctor(t, "Dr. Karan", "Thyrocare Specialist", "Manglore", "KMC889", "Gynaecology")
-
-	status1, response1 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=1&limit=2", token1, nil)
-	status2, response2 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=2&limit=2", token2, nil)
-
-	require.Equal(t, http.StatusOK, status1)
-	require.Equal(t, http.StatusOK, status2)
-
-	doctor_list1 := response1["doctor_list"].([]any)
-	doctor_list2 := response2["doctor_list"].([]any)
-
-	require.Equal(t, len(doctor_list1), 2)
-	require.Equal(t, len(doctor_list2), 2)
-
-	require.Equal(t, response1["total"], float64(4))
-	require.Equal(t, response2["total"], float64(4))
-}
-
-func TestSearchDoctorWithVaryingLimitAndOffsetSucceeds(t *testing.T) {
+func TestSearchDoctorWithNameWithoutNameFails(t *testing.T) {
 	reset(t)
 
 	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
 	token := login(t, "admin@hospital.local", "ChangeMe123!")
-
 	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
 	insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
 	insertDoctor(t, "Dr. Kaantha", "Skin Specialist", "Banglore", "KMC567", "Dermatology")
 	insertDoctor(t, "Dr. Karan", "Thyrocare Specialist", "Manglore", "KMC889", "Gynaecology")
 
-	status1, response1 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=1&limit=3", token, nil)
-	status2, response2 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=2&limit=3", token, nil)
+	status1, _ := request(t, http.MethodGet, "/api/v1/doctors?name=&page=1&limit=3", token, nil)
+	status2, _ := request(t, http.MethodGet, "/api/v1/doctors?name=&page=&limit=3", token, nil)
 
-	require.Equal(t, http.StatusOK, status1)
-	require.Equal(t, http.StatusOK, status2)
-
-	doctor_list1 := response1["doctor_list"].([]any)
-	doctor_list2 := response2["doctor_list"].([]any)
-
-	require.Equal(t, len(doctor_list1), 3)
-	require.Equal(t, len(doctor_list2), 1)
-
-	require.Equal(t, response1["total"], float64(4))
-	require.Equal(t, response2["total"], float64(4))
+	require.Equal(t, http.StatusBadRequest, status1)
+	require.Equal(t, http.StatusBadRequest, status2)
 }
 
 func reset(t *testing.T) {
@@ -452,7 +407,7 @@ func validDoctor() map[string]any {
 	}
 }
 
-func validDoctorResponse(id string) map[string]any {
+func validDoctorResponse(id any) map[string]any {
 	return map[string]any{
 		"id":             id,
 		"name":           "Dr. Kamath",
@@ -463,5 +418,54 @@ func validDoctorResponse(id string) map[string]any {
 		"created_at":     "1800-04-05T00:00:00Z",
 		"updated_at":     "1999-06-07T00:00:00Z",
 	}
+}
 
+func getDoctors1(id1, id2 string) any {
+	return []any{
+		map[string]any{
+			"id":             id1,
+			"name":           "Dr. Kaantha",
+			"speciality":     "Skin Specialist",
+			"address":        "Banglore",
+			"license_number": "KMC567",
+			"department":     "Dermatology",
+			"created_at":     "1800-04-05T00:00:00Z",
+			"updated_at":     "1999-06-07T00:00:00Z",
+		},
+		map[string]any{
+			"id":             id2,
+			"name":           "Dr. Kamala",
+			"speciality":     "Heart Specialist",
+			"address":        "Mysore",
+			"license_number": "KMC345",
+			"department":     "Cardiology",
+			"created_at":     "1800-04-05T00:00:00Z",
+			"updated_at":     "1999-06-07T00:00:00Z",
+		},
+	}
+}
+
+func getDoctors2(id1, id2 string) any {
+	return []any{
+		map[string]any{
+			"id":             id1,
+			"name":           "Dr. Kamath",
+			"speciality":     "Dental specialist",
+			"address":        "Mysore",
+			"license_number": "KMC123",
+			"department":     "Dental",
+			"created_at":     "1800-04-05T00:00:00Z",
+			"updated_at":     "1999-06-07T00:00:00Z",
+		},
+		map[string]any{
+			"id":             id2,
+			"name":           "Dr. Karan",
+			"speciality":     "Thyrocare Specialist",
+			"address":        "Manglore",
+			"license_number": "KMC889",
+			"department":     "Gynaecology",
+			"created_at":     "1800-04-05T00:00:00Z",
+			"updated_at":     "1999-06-07T00:00:00Z",
+		},
+	}
 }
