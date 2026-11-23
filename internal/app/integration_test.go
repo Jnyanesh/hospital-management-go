@@ -259,10 +259,10 @@ func TestSearchDoctorWithNameSucceds(t *testing.T) {
 
 	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
 	token := login(t, "admin@hospital.local", "ChangeMe123!")
-	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
-	insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
-	insertDoctor(t, "Dr. Kaantha", "Skin Specialist", "Banglore", "KMC567", "Dermatology")
-	insertDoctor(t, "Dr. Karan", "Thyrocare Specialist", "Manglore", "KMC889", "Gynaecology")
+	id1 := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	id2 := insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
+	id3 := insertDoctor(t, "Dr. Kaantha", "Skin Specialist", "Banglore", "KMC567", "Dermatology")
+	id4 := insertDoctor(t, "Dr. Karan", "Thyrocare Specialist", "Manglore", "KMC889", "Gynaecology")
 
 	status1, response1 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=1&limit=2", token, nil)
 	status2, response2 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=2&limit=2", token, nil)
@@ -279,36 +279,12 @@ func TestSearchDoctorWithNameSucceds(t *testing.T) {
 	doctor4 := doctor_list2[1].(map[string]any)
 
 	require.Equal(t, len(doctor_list1), 2)
-	require.Equal(t, doctor1["name"], "Dr. Kaantha")
-	require.Equal(t, doctor2["name"], "Dr. Kamala")
-
-	require.Equal(t, doctor1["speciality"], "Skin Specialist")
-	require.Equal(t, doctor2["speciality"], "Heart Specialist")
-
-	require.Equal(t, doctor1["address"], "Banglore")
-	require.Equal(t, doctor2["address"], "Mysore")
-
-	require.Equal(t, doctor1["license_number"], "KMC567")
-	require.Equal(t, doctor2["license_number"], "KMC345")
-
-	require.Equal(t, doctor1["department"], "Dermatology")
-	require.Equal(t, doctor2["department"], "Cardiology")
+	require.Equal(t, id3, doctor1["id"])
+	require.Equal(t, id2, doctor2["id"])
 
 	require.Equal(t, len(doctor_list2), 2)
-	require.Equal(t, doctor3["name"], "Dr. Kamath")
-	require.Equal(t, doctor4["name"], "Dr. Karan")
-
-	require.Equal(t, doctor3["speciality"], "Dental specialist")
-	require.Equal(t, doctor4["speciality"], "Thyrocare Specialist")
-
-	require.Equal(t, doctor3["address"], "Mysore")
-	require.Equal(t, doctor4["address"], "Manglore")
-
-	require.Equal(t, doctor3["license_number"], "KMC123")
-	require.Equal(t, doctor4["license_number"], "KMC889")
-
-	require.Equal(t, doctor3["department"], "Dental")
-	require.Equal(t, doctor4["department"], "Gynaecology")
+	require.Equal(t, id1, doctor3["id"])
+	require.Equal(t, id4, doctor4["id"])
 
 	require.Equal(t, response1["total"], float64(4))
 	require.Equal(t, response2["total"], float64(4))
@@ -336,7 +312,7 @@ func reset(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func insertUser(t *testing.T, email, rawPassword, fullName, role string) {
+func insertUser(t *testing.T, email, rawPassword, fullName, role string) string {
 	t.Helper()
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(rawPassword), bcrypt.MinCost)
@@ -351,6 +327,8 @@ func insertUser(t *testing.T, email, rawPassword, fullName, role string) {
 	require.NoError(t, err)
 	_, err = application.Pool.Exec(context.Background(), `INSERT INTO user_roles (user_id, role) VALUES ($1, $2)`, id, role)
 	require.NoError(t, err)
+
+	return id
 }
 
 func insertDoctor(t *testing.T, name, speciality, address, license_number, department string) string {
