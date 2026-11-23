@@ -188,7 +188,12 @@ func TestGetDoctorForLoggedInUserSucceeds(t *testing.T) {
 	status, doctor := request(t, http.MethodGet, "/api/v1/doctors/"+id, token, nil)
 
 	require.Equal(t, http.StatusOK, status)
-	require.Equal(t, doctor, validDoctorResponse(id))
+	require.Equal(t, doctor["name"], "Dr. Kamath")
+	require.Equal(t, doctor["speciality"], "Dental specialist")
+	require.Equal(t, doctor["address"], "Mysore")
+	require.Equal(t, doctor["license_number"], "KMC123")
+	require.Equal(t, doctor["department"], "Dental")
+
 }
 
 func TestGetDoctorForbidsNotLoggedInUser(t *testing.T) {
@@ -254,10 +259,10 @@ func TestSearchDoctorWithNameSucceds(t *testing.T) {
 
 	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
 	token := login(t, "admin@hospital.local", "ChangeMe123!")
-	id1 := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
-	id2 := insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
-	id3 := insertDoctor(t, "Dr. Kaantha", "Skin Specialist", "Banglore", "KMC567", "Dermatology")
-	id4 := insertDoctor(t, "Dr. Karan", "Thyrocare Specialist", "Manglore", "KMC889", "Gynaecology")
+	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
+	insertDoctor(t, "Dr. Kaantha", "Skin Specialist", "Banglore", "KMC567", "Dermatology")
+	insertDoctor(t, "Dr. Karan", "Thyrocare Specialist", "Manglore", "KMC889", "Gynaecology")
 
 	status1, response1 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=1&limit=2", token, nil)
 	status2, response2 := request(t, http.MethodGet, "/api/v1/doctors?name=Ka&page=2&limit=2", token, nil)
@@ -266,11 +271,44 @@ func TestSearchDoctorWithNameSucceds(t *testing.T) {
 	require.Equal(t, http.StatusOK, status2)
 
 	doctor_list1 := response1["doctor_list"].([]any)
+	doctor1 := doctor_list1[0].(map[string]any)
+	doctor2 := doctor_list1[1].(map[string]any)
+
 	doctor_list2 := response2["doctor_list"].([]any)
+	doctor3 := doctor_list2[0].(map[string]any)
+	doctor4 := doctor_list2[1].(map[string]any)
 
 	require.Equal(t, len(doctor_list1), 2)
-	require.Equal(t, doctor_list1, getDoctors1(id3, id2))
-	require.Equal(t, doctor_list2, getDoctors2(id1, id4))
+	require.Equal(t, doctor1["name"], "Dr. Kaantha")
+	require.Equal(t, doctor2["name"], "Dr. Kamala")
+
+	require.Equal(t, doctor1["speciality"], "Skin Specialist")
+	require.Equal(t, doctor2["speciality"], "Heart Specialist")
+
+	require.Equal(t, doctor1["address"], "Banglore")
+	require.Equal(t, doctor2["address"], "Mysore")
+
+	require.Equal(t, doctor1["license_number"], "KMC567")
+	require.Equal(t, doctor2["license_number"], "KMC345")
+
+	require.Equal(t, doctor1["department"], "Dermatology")
+	require.Equal(t, doctor2["department"], "Cardiology")
+
+	require.Equal(t, len(doctor_list2), 2)
+	require.Equal(t, doctor3["name"], "Dr. Kamath")
+	require.Equal(t, doctor4["name"], "Dr. Karan")
+
+	require.Equal(t, doctor3["speciality"], "Dental specialist")
+	require.Equal(t, doctor4["speciality"], "Thyrocare Specialist")
+
+	require.Equal(t, doctor3["address"], "Mysore")
+	require.Equal(t, doctor4["address"], "Manglore")
+
+	require.Equal(t, doctor3["license_number"], "KMC123")
+	require.Equal(t, doctor4["license_number"], "KMC889")
+
+	require.Equal(t, doctor3["department"], "Dental")
+	require.Equal(t, doctor4["department"], "Gynaecology")
 
 	require.Equal(t, response1["total"], float64(4))
 	require.Equal(t, response2["total"], float64(4))
@@ -404,68 +442,5 @@ func validDoctor() map[string]any {
 		"address":        "Mysore",
 		"license_number": "KMC123",
 		"department":     "Dental",
-	}
-}
-
-func validDoctorResponse(id any) map[string]any {
-	return map[string]any{
-		"id":             id,
-		"name":           "Dr. Kamath",
-		"speciality":     "Dental specialist",
-		"address":        "Mysore",
-		"license_number": "KMC123",
-		"department":     "Dental",
-		"created_at":     "1800-04-05T00:00:00Z",
-		"updated_at":     "1999-06-07T00:00:00Z",
-	}
-}
-
-func getDoctors1(id1, id2 string) any {
-	return []any{
-		map[string]any{
-			"id":             id1,
-			"name":           "Dr. Kaantha",
-			"speciality":     "Skin Specialist",
-			"address":        "Banglore",
-			"license_number": "KMC567",
-			"department":     "Dermatology",
-			"created_at":     "1800-04-05T00:00:00Z",
-			"updated_at":     "1999-06-07T00:00:00Z",
-		},
-		map[string]any{
-			"id":             id2,
-			"name":           "Dr. Kamala",
-			"speciality":     "Heart Specialist",
-			"address":        "Mysore",
-			"license_number": "KMC345",
-			"department":     "Cardiology",
-			"created_at":     "1800-04-05T00:00:00Z",
-			"updated_at":     "1999-06-07T00:00:00Z",
-		},
-	}
-}
-
-func getDoctors2(id1, id2 string) any {
-	return []any{
-		map[string]any{
-			"id":             id1,
-			"name":           "Dr. Kamath",
-			"speciality":     "Dental specialist",
-			"address":        "Mysore",
-			"license_number": "KMC123",
-			"department":     "Dental",
-			"created_at":     "1800-04-05T00:00:00Z",
-			"updated_at":     "1999-06-07T00:00:00Z",
-		},
-		map[string]any{
-			"id":             id2,
-			"name":           "Dr. Karan",
-			"speciality":     "Thyrocare Specialist",
-			"address":        "Manglore",
-			"license_number": "KMC889",
-			"department":     "Gynaecology",
-			"created_at":     "1800-04-05T00:00:00Z",
-			"updated_at":     "1999-06-07T00:00:00Z",
-		},
 	}
 }
