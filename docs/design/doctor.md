@@ -31,6 +31,8 @@
 - Get doctor by doctor id
 - Search doctor by name
 - Get total count of doctors present by name
+- Update a doctor 
+- Check for license number of other doctors other than user before upadate
 
 **Testing**
 
