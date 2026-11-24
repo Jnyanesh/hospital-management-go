@@ -21,7 +21,7 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) Register(c fiber.Ctx) error {
-	var request RegisterDoctorRequest
+	var request DoctorRequest
 	principal, ok := auth.PrincipalFrom(c.Context())
 
 	if !ok {
@@ -103,6 +103,35 @@ func (h *Handler) Search(c fiber.Ctx) error {
 	}
 
 	response, err := h.service.SearchDoctorByName(c.Context(), name, page, limit)
+	if err != nil {
+		return err
+	}
+
+	return httpx.WriteJSON(c, fiber.StatusOK, response)
+}
+
+func (h *Handler) Update(c fiber.Ctx) error {
+	principal, ok := auth.PrincipalFrom(c.Context())
+
+	if !ok {
+		return domain.Unauthorized("Authentication is required")
+	}
+
+	if !principal.HasAny(user.RoleAdmin, user.RoleDoctor) {
+		return domain.Forbidden()
+	}
+
+	id := strings.TrimSpace(c.Params("id"))
+	if id == "" {
+		return domain.BadRequest("Doctor ID is required")
+	}
+
+	var request DoctorRequest
+	if err := httpx.Decode(c, &request); err != nil {
+		return err
+	}
+
+	response, err := h.service.UpdateDoctor(c.Context(), id, request)
 	if err != nil {
 		return err
 	}
