@@ -22,6 +22,7 @@
 - Register a doctor with valid details
 - Get doctor by Id
 - Search a doctor by name
+- Update doctor
 
 **Database Queries**
 
@@ -30,6 +31,8 @@
 - Get doctor by doctor id
 - Search doctor by name
 - Get total count of doctors present by name
+- Update a doctor 
+- Check for license number of other doctors other than user before upadate
 
 **Testing**
 
@@ -39,7 +42,8 @@
 
 - (POST) http://localhost:8082/api/v1/doctors
 - (GET) http://localhost:8082/api/v1/doctors/{id}
-- (GET) http://localhost:8082/api/v1/doctor?name={name}&page={page}&limit={limit}
+- (GET) http://localhost:8082/api/v1/doctors?name={name}&page={page}&limit={limit}
+- (PUT) http://localhost:8082/api/v1/doctors/{id}
 
 ### API responses:
 
@@ -182,5 +186,20 @@
         }
     ],
     "total": 3
+}
+```
+
+**Doctor Update Response**
+
+```
+{
+    "id": "81d5432c-bcea-443f-b3b9-df2d6ed25b91",
+    "name": "Dr. Karan",
+    "speciality": "Dental specialist",
+    "address": "Mysore",
+    "license_number": "kmc123",
+    "department": "Dental",
+    "created_at": "2026-11-13T04:16:29.696948Z",
+    "updated_at": "2026-11-24T04:54:19.366009Z"
 }
 ```

@@ -6,6 +6,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"errors"
 	"github.com/HemanthGowda/hospital-management-go/internal/domain"
 )
 
@@ -17,7 +18,7 @@ func NewService(repository Repository) *Service {
 	return &Service{repository: repository}
 }
 
-func (s *Service) Register(ctx context.Context, request RegisterDoctorRequest) (DoctorResponse, error) {
+func (s *Service) Register(ctx context.Context, request DoctorRequest) (DoctorResponse, error) {
 	if violation := validateCreateRequest(request); len(violation) > 0 {
 		return DoctorResponse{}, domain.ValidationFailed(violation)
 
@@ -55,7 +56,7 @@ func (s *Service) Register(ctx context.Context, request RegisterDoctorRequest) (
 	return toResponse(created), nil
 }
 
-func validateCreateRequest(request RegisterDoctorRequest) []domain.Violation {
+func validateCreateRequest(request DoctorRequest) []domain.Violation {
 	var violations []domain.Violation
 
 	switch {
@@ -127,6 +128,54 @@ func (s *Service) SearchDoctorByName(ctx context.Context, name string, page, lim
 		Doctors: responses,
 		Total:   total,
 	}, nil
+}
+
+func (s *Service) UpdateDoctor(ctx context.Context, id string, request DoctorRequest) (DoctorResponse, error) {
+	if violation := validateCreateRequest(request); len(violation) > 0 {
+		return DoctorResponse{}, domain.ValidationFailed(violation)
+
+	}
+
+	existing, err := s.repository.GetDoctorById(ctx, id)
+
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return DoctorResponse{}, domain.NotFound("Doctor not found: " + id)
+		}
+		return DoctorResponse{}, err
+	}
+
+	licenseNumber := strings.ToLower(strings.TrimSpace(request.LicenseNumber))
+
+	exists, err := s.repository.HasLicenseNumber(ctx, id, licenseNumber)
+	if err != nil {
+		return DoctorResponse{}, err
+	}
+
+	if exists {
+		return DoctorResponse{}, domain.Conflict("License Number already exists")
+	}
+	existing.LicenseNumber = strings.ToLower(strings.TrimSpace(request.LicenseNumber))
+	existing.Name = strings.TrimSpace(request.Name)
+	existing.Speciality = strings.TrimSpace(request.Speciality)
+	existing.Department = strings.TrimSpace(request.Department)
+	existing.Address = strings.TrimSpace(request.Address)
+	existing.UpdatedAt = time.Now()
+
+	updated, err := s.repository.UpdateDoctor(ctx, existing)
+	if errors.Is(err, ErrNotFound) {
+		return DoctorResponse{}, domain.NotFound("Doctor not found: " + id)
+	}
+
+	if errors.Is(err, ErrDuplicate) {
+		return DoctorResponse{}, domain.Conflict("License Number already exists")
+	}
+
+	if err != nil {
+		return DoctorResponse{}, err
+	}
+
+	return toResponse(updated), nil
 }
 
 func toResponse(doctor Doctor) DoctorResponse {

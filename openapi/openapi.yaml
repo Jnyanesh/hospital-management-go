@@ -15,6 +15,7 @@ info:
     - POST /api/v1/doctors - register doctor
     - GET /api/v1/doctors/{id} - get doctor
     - GET /api/v1/doctors?name={name}&page={page}&limit={limit}
+    - PUT /api/v1/doctors/{id} - update doctor
 
   contact:
     name: Hospital Engineering
@@ -182,7 +183,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-    RegisterDoctorRequest:
+    DoctorRequest:
       type: object
       required: [name, speciality, address, license_number, department]
       properties:
@@ -364,7 +365,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RegisterDoctorRequest"
+              $ref: "#/components/schemas/DoctorRequest"
             example:
               Name: Dr. Kamath
               speciality: Dental specialist
@@ -402,57 +403,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
-  /api/v1/doctors/{id}:
     get:
       tags: [Doctors]
-      summary: Get doctor details with specific id
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: false
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: Doctor fetched succesfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DoctorResponse"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-        "401":
-          description: Missing or invalid token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-        "403":
-          description: Forbidden access
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-        "404":
-          description: Doctor Not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-  /api/v1/doctors?:
-    get:
-      tags:
-        - Doctors
       summary: Search doctor details by name
+      description : End Point that fetches doctors by name
       security:
         - bearerAuth: []
       parameters:
@@ -497,6 +451,105 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "403":
           description: Forbidden access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/doctors/{id}:
+    get:
+      tags: [Doctors]
+      summary: Get doctor details with specific id
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Doctor fetched succesfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Doctor Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      tags: [Doctors]
+      summary: update doctor details with specific id
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DoctorRequest"
+            example:
+              Name: Dr. Kamath
+              speciality: Dental specialist
+              address: Mysore
+              license_number: kmc123
+              department: Dental
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Doctor Updated succesfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Doctor Not found
           content:
             application/json:
               schema:

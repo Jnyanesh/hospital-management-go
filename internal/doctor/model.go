@@ -13,7 +13,7 @@ type Doctor struct {
 	UpdatedAt     time.Time
 }
 
-type RegisterDoctorRequest struct {
+type DoctorRequest struct {
 	Name          string `json:"name"`
 	Speciality    string `json:"speciality"`
 	Address       string `json:"address"`

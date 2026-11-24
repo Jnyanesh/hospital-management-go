@@ -60,6 +60,7 @@ func NewRouter(deps Dependencies) (*fiber.App, error) {
 	app.Post("/api/v1/doctors", deps.Doctors.Register)
 	app.Get("/api/v1/doctors/:id", deps.Doctors.Get)
 	app.Get("/api/v1/doctors", deps.Doctors.Search)
+	app.Put("/api/v1/doctors/:id", deps.Doctors.Update)
 	app.Use(unmatchedRoute)
 
 	return app, nil

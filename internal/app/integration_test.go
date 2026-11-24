@@ -306,6 +306,128 @@ func TestSearchDoctorWithNameWithoutNameFails(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, status2)
 }
 
+func TestUpdateDoctorWithValidFieldsSucceeds(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+
+	update := map[string]any{
+		"name":           "Dr. Karan",
+		"speciality":     "Dental specialist",
+		"address":        "Mysore",
+		"license_number": "KMC123",
+		"department":     "Dental",
+	}
+
+	status1, response := request(t, http.MethodPut, "/api/v1/doctors/"+id, token, update)
+
+	require.Equal(t, http.StatusOK, status1)
+	require.Equal(t, id, response["id"])
+}
+
+func TestUpdateDoctorWithConflictingLicenseNumberFails(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
+
+	update := map[string]any{
+		"name":           "Dr. Karan",
+		"speciality":     "Dental specialist",
+		"address":        "Mysore",
+		"license_number": "KMC345",
+		"department":     "Dental",
+	}
+
+	status1, _ := request(t, http.MethodPut, "/api/v1/doctors/"+id, token, update)
+
+	require.Equal(t, http.StatusConflict, status1)
+}
+
+func TestUpdateDoctorWithPatientRoleFails(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "patient@hospital.local", "ChangeMe123!", "Hospital Patient", "PATIENT")
+	token := login(t, "patient@hospital.local", "ChangeMe123!")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+	insertDoctor(t, "Dr. Kamala", "Heart Specialist", "Mysore", "KMC345", "Cardiology")
+
+	update := map[string]any{
+		"name":           "Dr. Karan",
+		"speciality":     "Dental specialist",
+		"address":        "Mysore",
+		"license_number": "KMC345",
+		"department":     "Dental",
+	}
+
+	status1, _ := request(t, http.MethodPut, "/api/v1/doctors/"+id, token, update)
+
+	require.Equal(t, http.StatusForbidden, status1)
+}
+
+func TestUpdateDoctorWithNonExistentDoctorFails(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Patient", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+
+	update := map[string]any{
+		"name":           "Dr. Karan",
+		"speciality":     "Dental specialist",
+		"address":        "Mysore",
+		"license_number": "KMC345",
+		"department":     "Dental",
+	}
+
+	status1, _ := request(t, http.MethodPut, "/api/v1/doctors/123", token, update)
+
+	require.Equal(t, http.StatusNotFound, status1)
+}
+
+func TestUpdateDoctorWithInvalidDoctorDetailsFails(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Patient", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+
+	update := map[string]any{
+		"name":           "Dr. Karan",
+		"speciality":     "Dental specialist",
+		"license_number": "KMC345",
+		"department":     "Dental",
+	}
+
+	status1, _ := request(t, http.MethodPut, "/api/v1/doctors/"+id, token, update)
+
+	require.Equal(t, http.StatusBadRequest, status1)
+}
+
+func TestUpdateDoctorWithoutLoginFails(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Patient", "ADMIN")
+	login(t, "admin@hospital.local", "ChangeMe123!")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+
+	update := map[string]any{
+		"name":           "Dr. Karan",
+		"speciality":     "Dental specialist",
+		"address":        "Mysore",
+		"license_number": "KMC345",
+		"department":     "Dental",
+	}
+
+	status1, _ := request(t, http.MethodPut, "/api/v1/doctors/"+id, " ", update)
+
+	require.Equal(t, http.StatusUnauthorized, status1)
+}
+
 func reset(t *testing.T) {
 	t.Helper()
 	_, err := application.Pool.Exec(context.Background(), `TRUNCATE TABLE patients, doctors, user_roles, users RESTART IDENTITY CASCADE`)

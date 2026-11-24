@@ -119,6 +119,38 @@ func (r *PostgresRepository) ExistsByLisenceNumber(ctx context.Context, licenseN
 	return exists, err
 }
 
+func (r *PostgresRepository) HasLicenseNumber(ctx context.Context, id string, licenseNumber string) (bool, error) {
+	var exists bool
+
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM doctors WHERE lower(licenseNumber) = lower($2) AND id != $1)`, id, licenseNumber).Scan(&exists)
+	return exists, err
+}
+
+func (r *PostgresRepository) UpdateDoctor(ctx context.Context, doctor Doctor) (Doctor, error) {
+	row := r.pool.QueryRow(ctx, `
+		Update doctors
+		Set fullname = $2,
+		speciality = $3,
+		address = $4,
+		licensenumber = $5, 
+		department = $6,
+		updated_at = $7
+		WHERE id = $1
+		Returning `+doctorColumns+`
+		`, doctor.Id, doctor.Name, doctor.Speciality, doctor.Address, doctor.LicenseNumber, doctor.Department, doctor.UpdatedAt)
+
+	updated, err := toDoctorResponse(row)
+	if errors.Is(err, ErrNotFound) {
+		return Doctor{}, ErrNotFound
+	}
+
+	if db.IsUniqueViolation(err) {
+		return Doctor{}, ErrDuplicate
+	}
+
+	return updated, err
+}
+
 type scanner interface {
 	Scan(dest ...any) error
 }
