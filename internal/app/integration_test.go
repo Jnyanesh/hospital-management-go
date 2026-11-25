@@ -442,7 +442,7 @@ func TestDeleteDoctorWithLoginSucceds(t *testing.T) {
 	require.Equal(t, response["deleted"], true)
 }
 
-func TestDeleteDoctorHavingAsPrimaryDoctorNameFails(t *testing.T) { 
+func TestDeleteDoctorPresentAsPrimaryDoctorNameForAPatientFails(t *testing.T) {
 	reset(t)
 
 	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital admin", "ADMIN")
@@ -480,11 +480,24 @@ func TestDeleteDoctorWithPatientLoginFails(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, status)
 }
 
+func TestDeleteDoctorWithDoctorLoginFails(t *testing.T) {
+	reset(t)
+
+	insertUser(t, "doctor@hospital.local", "ChangeMe123!", "Hospital Doctor", "DOCTOR")
+	token := login(t, "doctor@hospital.local", "ChangeMe123!")
+	id := insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
+
+	status, _ := request(t, http.MethodDelete, "/api/v1/doctors/"+id, token, nil)
+
+	require.Equal(t, http.StatusOK, status)
+}
+
+
 func TestDeleteDoctorWithoutIdFails(t *testing.T) {
 	reset(t)
 
-	insertUser(t, "patient@hospital.local", "ChangeMe123!", "Hospital Patient", "PATIENT")
-	token := login(t, "patient@hospital.local", "ChangeMe123!")
+	insertUser(t, "admin@hospital.local", "ChangeMe123!", "Hospital Admin", "ADMIN")
+	token := login(t, "admin@hospital.local", "ChangeMe123!")
 	insertDoctor(t, "Dr. Kamath", "Dental specialist", "Mysore", "KMC123", "Dental")
 
 	status, _ := request(t, http.MethodDelete, "/api/v1/doctors/", token, nil)
