@@ -18,4 +18,6 @@ type Repository interface {
 	CountDoctors(ctx context.Context, name string) (int, error)
 	UpdateDoctor(ctx context.Context, doctor Doctor) (Doctor, error)
 	HasLicenseNumber(ctx context.Context, id string, licenseNumber string) (bool, error)
+	DeleteDoctor(ctx context.Context, id string)(error)
+	DoctorExistsAsPrimaryDoctor(ctx context.Context, name string) (bool, error)
 }

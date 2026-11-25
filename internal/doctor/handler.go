@@ -138,3 +138,28 @@ func (h *Handler) Update(c fiber.Ctx) error {
 
 	return httpx.WriteJSON(c, fiber.StatusOK, response)
 }
+
+func (h *Handler) Delete(c fiber.Ctx) error {
+	principal, ok := auth.PrincipalFrom(c.Context())
+
+	if !ok {
+		return domain.Unauthorized("Authentication is required")
+	}
+
+	if !principal.HasAny(user.RoleAdmin, user.RoleDoctor) {
+		return domain.Forbidden()
+	}
+
+	id := strings.TrimSpace(c.Params("id"))
+	if id == "" {
+		return domain.BadRequest("Doctor ID is required")
+	}
+
+	response, err := h.service.DeleteDoctor(c.Context(), id )
+	if err != nil {
+		return err
+	}
+
+	return httpx.WriteJSON(c, fiber.StatusOK, response)
+}
+

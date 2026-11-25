@@ -36,3 +36,9 @@ type ListDoctorResponse struct {
 	Doctors []DoctorResponse `json:"doctor_list"`
 	Total   int              `json:"total"`
 }
+
+type DeletedResponse struct {
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+	Deleted bool   `json:"deleted"`
+}

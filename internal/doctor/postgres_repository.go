@@ -151,6 +151,33 @@ func (r *PostgresRepository) UpdateDoctor(ctx context.Context, doctor Doctor) (D
 	return updated, err
 }
 
+func (r *PostgresRepository) DeleteDoctor(ctx context.Context, id string) error {
+	result, err := r.pool.Exec(ctx, `
+	Delete from doctors 
+	where id = $1`,
+		id)
+
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *PostgresRepository) DoctorExistsAsPrimaryDoctor(ctx context.Context, name string) (bool, error) {
+	var exists bool
+
+	err := r.pool.QueryRow(ctx, `Select Exists(
+	Select 1 from patients 
+	where primary_doctor_name = $1)`,
+		name).Scan(&exists)
+
+	return exists, err
+}
+
 type scanner interface {
 	Scan(dest ...any) error
 }
