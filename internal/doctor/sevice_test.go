@@ -652,9 +652,98 @@ func TestUpdateDoctorWithEmptyFieldsFails(t *testing.T) {
 	require.Equal(t, domainErr.Message, "Request validation failed")
 }
 
+func TestDeleteValidDoctorSuceeds(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	doctor, _ := service.Register(context.Background(), DoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+
+	repository.primaryDoctorExists = false
+	response, err := service.DeleteDoctor(context.Background(), doctor.Id)
+
+	require.NoError(t, err)
+	require.Equal(t, response.Deleted, true)
+	require.Equal(t, response.Name, "Dr. Kamath")
+	require.Equal(t, response.Id, doctor.Id)
+}
+
+func TestDeleteDoctorFailsIfExistsAsPrimaryDoctor(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	doctor, _ := service.Register(context.Background(), DoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+
+	repository.primaryDoctorExists = true
+
+	response, err := service.DeleteDoctor(context.Background(), doctor.Id)
+
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, domainErr.Kind, domain.KindForbidden)
+	require.Equal(t, response.Deleted, false)
+}
+
+func TestDeleteValidDoctorWithoutValidIdFails(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	service.Register(context.Background(), DoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+
+	repository.primaryDoctorExists = true
+
+	response, err := service.DeleteDoctor(context.Background(), "123")
+
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, domainErr.Message, "Doctor Not Found")
+	require.Equal(t, response.Deleted, false)
+}
+
+func TestDeleteValidDoctorWithoutIdFails(t *testing.T) {
+	repository := newFakeDoctorRepo()
+	service := NewService(repository)
+
+	service.Register(context.Background(), DoctorRequest{
+		Name:          "Dr. Kamath",
+		Address:       "Mysuru",
+		Speciality:    "Dental Specialist",
+		LicenseNumber: "KMC123",
+		Department:    "Oral",
+	})
+
+	repository.primaryDoctorExists = true
+
+	response, err := service.DeleteDoctor(context.Background(), "")
+
+	var domainErr *domain.Error
+	require.ErrorAs(t, err, &domainErr)
+	require.Equal(t, domainErr.Message, "Doctor Not Found")
+	require.Equal(t, response.Deleted, false)
+}
+
 type fakeDoctorRepo struct {
-	doctors map[string]Doctor
-	nextId  int
+	doctors             map[string]Doctor
+	nextId              int
+	primaryDoctorExists bool
+	checkError          error
 }
 
 func newFakeDoctorRepo() *fakeDoctorRepo {
@@ -749,4 +838,18 @@ func (f *fakeDoctorRepo) CountDoctors(_ context.Context, name string) (int, erro
 		}
 	}
 	return count, nil
+}
+
+func (f *fakeDoctorRepo) DeleteDoctor(_ context.Context, id string) error {
+	for i := range f.doctors {
+		if f.doctors[i].Id == id {
+			delete(f.doctors, id)
+		}
+	}
+	return nil
+}
+
+func (f *fakeDoctorRepo) DoctorExistsAsPrimaryDoctor(_ context.Context, name string) (bool, error) {
+
+	return f.primaryDoctorExists, f.checkError
 }

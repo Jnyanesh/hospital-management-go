@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
 	"errors"
 	"github.com/HemanthGowda/hospital-management-go/internal/domain"
 )
@@ -176,6 +175,36 @@ func (s *Service) UpdateDoctor(ctx context.Context, id string, request DoctorReq
 	}
 
 	return toResponse(updated), nil
+}
+
+func (s *Service) DeleteDoctor(ctx context.Context, id string) (DeletedResponse, error) {
+	existing, err := s.GetDoctorById(ctx, id)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return DeletedResponse{}, domain.NotFound("Doctor not found: " + id)
+		}
+		return DeletedResponse{}, err
+	}
+
+	exists, err := s.repository.DoctorExistsAsPrimaryDoctor(ctx, existing.Name)
+	if err != nil {
+		return DeletedResponse{}, err
+	}
+	if exists {
+		return DeletedResponse{}, domain.Forbidden()
+	}
+
+	err1 := s.repository.DeleteDoctor(ctx, existing.Id)
+	if err1 != nil {
+		return DeletedResponse{}, err1
+	}
+
+	return DeletedResponse{
+		Id:      existing.Id,
+		Name:    existing.Name,
+		Deleted: true,
+	}, nil
+
 }
 
 func toResponse(doctor Doctor) DoctorResponse {

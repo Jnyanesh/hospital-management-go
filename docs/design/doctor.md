@@ -23,6 +23,7 @@
 - Get doctor by Id
 - Search a doctor by name
 - Update doctor
+- Delete doctor
 
 **Database Queries**
 
@@ -33,6 +34,8 @@
 - Get total count of doctors present by name
 - Update a doctor 
 - Check for license number of other doctors other than user before upadate
+- Delete a doctor by Id
+- Check if the doctor is a primary doctor for any patient
 
 **Testing**
 
@@ -44,6 +47,7 @@
 - (GET) http://localhost:8082/api/v1/doctors/{id}
 - (GET) http://localhost:8082/api/v1/doctors?name={name}&page={page}&limit={limit}
 - (PUT) http://localhost:8082/api/v1/doctors/{id}
+- (DELETE) http://localhost:8082/api/v1/doctors/{id}
 
 ### API responses:
 
@@ -202,4 +206,22 @@
     "created_at": "2026-11-13T04:16:29.696948Z",
     "updated_at": "2026-11-24T04:54:19.366009Z"
 }
+```
+**Delete a Doctor who is a primary doctor for a patient**
+```
+{
+    "timestamp": "2026-11-24T13:12:33.855839017Z",
+    "status": 403,
+    "error": "Forbidden",
+    "message": "You do not have permission to perform this action",
+    "path": "/api/v1/doctors/26edd2d5-d621-46ac-a40f-0c1b4ecac4b3"
+}
+```
+**Delete a Doctor**
+```
+{
+    "id": "97002fe1-cd18-40c5-8ca2-5c4771a70cfc",
+    "deleted": true
+}
+
 ```
